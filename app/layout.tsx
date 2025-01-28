@@ -10,6 +10,9 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        <script src="https://getlaunchlist.com/js/widget.js" defer />
+      </head>
       <body>
         <ClerkProvider>
           <ThemeProvider
