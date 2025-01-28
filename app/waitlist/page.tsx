@@ -1,3 +1,14 @@
+import type { Metadata } from 'next'
+
+export const metadata: Metadata = {
+  title: 'Join the Waitlist',
+  description: 'Be among the first to experience Chaos Chess. Sign up for early access, exclusive tournaments, and special rewards.',
+  openGraph: {
+    title: 'Join the Chaos Chess Waitlist',
+    description: 'Be among the first to experience Chaos Chess. Sign up for early access, exclusive tournaments, and special rewards.',
+  }
+}
+
 export default function WaitlistPage() {
   return (
     <main className="min-h-screen relative overflow-hidden">
