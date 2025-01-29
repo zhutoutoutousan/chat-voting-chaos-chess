@@ -520,10 +520,11 @@ export default function ChessGame() {
 
   return (
     <div className="w-full max-w-[1200px] mx-auto mt-8">
-      <div className="flex gap-8">
-        <div className="flex-1 bg-white/5 backdrop-blur-md rounded-lg p-4">
-          <div className="text-center mb-4">
-            <p className="text-lg font-semibold text-white">
+      <div className="flex flex-col lg:flex-row gap-4 lg:gap-8">
+        {/* Main Game Area */}
+        <div className="flex-1 bg-white/5 backdrop-blur-md rounded-lg p-2 lg:p-4">
+          <div className="text-center mb-2 lg:mb-4">
+            <p className="text-base lg:text-lg font-semibold text-white">
               {game.turn() === 'w' ? 'Your turn' : 'AI thinking...'}
             </p>
           </div>
@@ -542,35 +543,40 @@ export default function ChessGame() {
                 return false
               }}
               customDarkSquareStyle={{ 
-                backgroundColor: '#B58863'  // Classic dark wood color
+                backgroundColor: '#B58863'
               }}
               customLightSquareStyle={{ 
-                backgroundColor: '#F0D9B5'  // Classic light wood color
+                backgroundColor: '#F0D9B5'
               }}
               boardStyle={{
                 borderRadius: '8px',
                 boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.2)',
-                border: '2px solid #8B4513',  // Dark wood border
-                background: 'linear-gradient(45deg, #8B4513, #A0522D)',  // Wood gradient border
-                padding: '10px'
+                border: '2px solid #8B4513',
+                background: 'linear-gradient(45deg, #8B4513, #A0522D)',
+                padding: '10px',
+                width: '100%', // Make board responsive
+                maxWidth: '600px', // Limit maximum size
+                margin: '0 auto' // Center the board
               }}
             />
           </div>
+
+          {/* Game Status */}
           {winner ? (
-            <div className="mt-4 text-center bg-black/50 rounded-lg p-4">
-              <h3 className="text-3xl font-bold text-white animate-bounce">
+            <div className="mt-2 lg:mt-4 text-center bg-black/50 rounded-lg p-2 lg:p-4">
+              <h3 className="text-2xl lg:text-3xl font-bold text-white animate-bounce">
                 {winner === 'white' ? 'White' : 'Black'} Wins!
               </h3>
             </div>
           ) : (
-            <div className="mt-4 space-y-2">
+            <div className="mt-2 lg:mt-4 space-y-2">
               <Progress value={progress} className="h-2" />
               {lastEffect && (
-                <div className="text-center bg-black/50 rounded-lg p-4 space-y-2">
-                  <h3 className="text-xl font-bold text-white">
+                <div className="text-center bg-black/50 rounded-lg p-2 lg:p-4 space-y-1 lg:space-y-2">
+                  <h3 className="text-lg lg:text-xl font-bold text-white">
                     {lastEffect.name}
                   </h3>
-                  <p className="text-white/80">
+                  <p className="text-sm lg:text-base text-white/80">
                     {lastEffect.description}
                   </p>
                 </div>
@@ -579,21 +585,22 @@ export default function ChessGame() {
           )}
         </div>
 
-        <div className="w-64 bg-white/10 backdrop-blur-sm rounded-lg p-4">
-          <h3 className="text-xl font-bold text-white mb-4 text-center">
+        {/* Voting Panel */}
+        <div className="w-full lg:w-64 bg-white/10 backdrop-blur-sm rounded-lg p-2 lg:p-4">
+          <h3 className="text-lg lg:text-xl font-bold text-white mb-2 lg:mb-4 text-center">
             Next Chaos Effect
           </h3>
-          <div className="space-y-4">
+          <div className="grid grid-cols-2 lg:grid-cols-1 gap-2 lg:gap-4">
             {votingOptions.map((option, index) => (
-              <div key={index} className="bg-black/30 rounded-lg p-3">
-                <p className="text-white font-medium mb-2">{option.effect.name}</p>
-                <div className="w-full bg-black/30 rounded-full h-2">
+              <div key={index} className="bg-black/30 rounded-lg p-2 lg:p-3">
+                <p className="text-sm lg:text-base text-white font-medium mb-1 lg:mb-2">{option.effect.name}</p>
+                <div className="w-full bg-black/30 rounded-full h-1.5 lg:h-2">
                   <div 
                     className="bg-white/80 h-full rounded-full transition-all duration-300"
                     style={{ width: `${(option.votes / totalVotes) * 100}%` }}
                   />
                 </div>
-                <p className="text-white/80 text-sm mt-1">{option.votes} votes</p>
+                <p className="text-xs lg:text-sm text-white/80 mt-1">{option.votes} votes</p>
               </div>
             ))}
           </div>
