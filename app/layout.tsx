@@ -3,6 +3,7 @@ import { ThemeProvider } from "@/components/theme-provider"
 import Dock from '@/components/Dock'
 import './globals.css'
 import type { Metadata } from 'next'
+import { Analytics } from "@vercel/analytics/react"
 
 export const metadata: Metadata = {
   title: {
@@ -83,6 +84,7 @@ export default function RootLayout({
           >
             {children}
             <Dock />
+            <Analytics />
           </ThemeProvider>
         </ClerkProvider>
       </body>
