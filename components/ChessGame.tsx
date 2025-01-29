@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { Chess } from 'chess.js'
 import { Chessboard } from 'react-chessboard'
 import { Progress } from "@/components/ui/progress"
@@ -15,6 +15,11 @@ type ChaosEffect = {
   execute: (game: Chess) => void;
 }
 
+// Helper function to check if a pawn should be promoted
+function shouldPromotePawn(square: Square, color: Color) {
+  return (color === 'w' && square[1] === '8') || (color === 'b' && square[1] === '1')
+}
+
 const chaosEffects: ChaosEffect[] = [
   {
     name: "Random Piece Swap",
@@ -24,30 +29,35 @@ const chaosEffects: ChaosEffect[] = [
       const pieces = board.flat().filter((p): p is { type: PieceSymbol; color: Color; square: Square } => 
         p !== null && p.type !== 'k'
       )
-      if (pieces.length >= 2) {
+      
+      // Try up to 10 times to find valid moves
+      for (let attempt = 0; attempt < 10; attempt++) {
         const piece1 = pieces[Math.floor(Math.random() * pieces.length)]
         const piece2 = pieces[Math.floor(Math.random() * pieces.length)]
+        
         if (piece1 && piece2) {
+          // Check if swap would create invalid pawn positions
+          if (piece1.type === 'p' && !shouldPromotePawn(piece2.square, piece1.color) ||
+              piece2.type === 'p' && !shouldPromotePawn(piece1.square, piece2.color)) {
+            continue // Try another random pair
+          }
+
           game.remove(piece1.square)
           game.remove(piece2.square)
           
-          // Check for pawn promotion on piece1's new position
-          if (piece1.type === 'p' && 
-              ((piece1.color === 'w' && piece2.square[1] === '8') || 
-               (piece1.color === 'b' && piece2.square[1] === '1'))) {
+          // Handle promotions
+          if (piece1.type === 'p' && shouldPromotePawn(piece2.square, piece1.color)) {
             game.put({ type: 'q' as PieceSymbol, color: piece1.color }, piece2.square)
           } else {
             game.put({ type: piece1.type as PieceSymbol, color: piece1.color }, piece2.square)
           }
           
-          // Check for pawn promotion on piece2's new position
-          if (piece2.type === 'p' && 
-              ((piece2.color === 'w' && piece1.square[1] === '8') || 
-               (piece2.color === 'b' && piece1.square[1] === '1'))) {
+          if (piece2.type === 'p' && shouldPromotePawn(piece1.square, piece2.color)) {
             game.put({ type: 'q' as PieceSymbol, color: piece2.color }, piece1.square)
           } else {
             game.put({ type: piece2.type as PieceSymbol, color: piece2.color }, piece1.square)
           }
+          return // Success
         }
       }
     }
@@ -88,18 +98,34 @@ const chaosEffects: ChaosEffect[] = [
     description: "A random piece is duplicated",
     execute: (game) => {
       const board = game.board()
-      const pieces = board.flat().filter((p): p is { type: PieceSymbol; color: Color; square: Square } => p !== null && p.type !== 'k')
+      const pieces = board.flat().filter((p): p is { type: PieceSymbol; color: Color; square: Square } => 
+        p !== null && p.type !== 'k'
+      )
       const emptySquares = board.flat().filter((p): p is null => p === null)
         .map((_, i) => {
           const file = String.fromCharCode('a'.charCodeAt(0) + (i % 8))
           const rank = Math.floor(i / 8) + 1
           return `${file}${rank}` as Square
         })
-      if (pieces.length > 0 && emptySquares.length > 0) {
+
+      // Try up to 10 times to find valid moves
+      for (let attempt = 0; attempt < 10; attempt++) {
         const piece = pieces[Math.floor(Math.random() * pieces.length)]
         const square = emptySquares[Math.floor(Math.random() * emptySquares.length)]
+        
         if (piece && square) {
-          game.put({ type: piece.type as PieceSymbol, color: piece.color }, square)
+          // Check if duplication would create invalid pawn position
+          if (piece.type === 'p' && !shouldPromotePawn(square, piece.color)) {
+            continue // Try another random combination
+          }
+
+          // Handle promotion
+          if (piece.type === 'p' && shouldPromotePawn(square, piece.color)) {
+            game.put({ type: 'q' as PieceSymbol, color: piece.color }, square)
+          } else {
+            game.put({ type: piece.type as PieceSymbol, color: piece.color }, square)
+          }
+          return // Success
         }
       }
     }
@@ -284,6 +310,83 @@ type VotingOption = {
   votes: number;
 }
 
+// Add simple evaluation function
+function evaluatePosition(game: Chess): number {
+  const pieceValues = {
+    p: 1,
+    n: 3,
+    b: 3,
+    r: 5,
+    q: 9,
+    k: 0
+  }
+  
+  let score = 0
+  const board = game.board()
+  
+  board.forEach(row => {
+    row.forEach(piece => {
+      if (piece) {
+        const value = pieceValues[piece.type] * (piece.color === 'w' ? 1 : -1)
+        score += value
+      }
+    })
+  })
+  
+  return score
+}
+
+// Add minimax function
+function findBestMove(game: Chess, depth: number = 3): string {
+  let bestMove = null
+  let bestValue = -Infinity
+  const moves = game.moves({ verbose: true })
+  
+  for (const move of moves) {
+    game.move(move)
+    const value = -minimax(game, depth - 1, -Infinity, Infinity, false)
+    game.undo()
+    
+    if (value > bestValue) {
+      bestValue = value
+      bestMove = move
+    }
+  }
+  
+  return bestMove ? bestMove.san : moves[0].san
+}
+
+function minimax(game: Chess, depth: number, alpha: number, beta: number, isMaximizing: boolean): number {
+  if (depth === 0) return evaluatePosition(game)
+  
+  const moves = game.moves()
+  if (moves.length === 0) return -Infinity // Checkmate
+  
+  if (isMaximizing) {
+    let maxEval = -Infinity
+    for (const move of moves) {
+      game.move(move)
+      const evaluation = minimax(game, depth - 1, alpha, beta, false)
+      game.undo()
+      maxEval = Math.max(maxEval, evaluation)
+      alpha = Math.max(alpha, evaluation)
+      if (beta <= alpha) break
+    }
+    return maxEval
+  } else {
+    let minEval = Infinity
+    for (const move of moves) {
+      game.move(move)
+      const evaluation = minimax(game, depth - 1, alpha, beta, true)
+      game.undo()
+      minEval = Math.min(minEval, evaluation)
+      beta = Math.min(beta, evaluation)
+      if (beta <= alpha) break
+    }
+    return minEval
+  }
+}
+
 export default function ChessGame() {
   const [game, setGame] = useState(new Chess())
   const [lastEffect, setLastEffect] = useState<ChaosEffect | null>(null)
@@ -293,18 +396,29 @@ export default function ChessGame() {
   const [totalVotes, setTotalVotes] = useState(0)
 
   function checkWinCondition(game: Chess) {
+    // Check for missing kings first
     const board = game.board()
     const whiteKing = board.flat().find(p => p && p.type === 'k' && p.color === 'w')
     const blackKing = board.flat().find(p => p && p.type === 'k' && p.color === 'b')
 
     if (!whiteKing) {
       setWinner('black')
+      setTimeout(resetGame, RESET_DELAY)
       return true
     }
     if (!blackKing) {
       setWinner('white')
+      setTimeout(resetGame, RESET_DELAY)
       return true
     }
+
+    // Check for checkmate
+    if (game.isCheckmate()) {
+      setWinner(game.turn() === 'w' ? 'black' : 'white')
+      setTimeout(resetGame, RESET_DELAY)
+      return true
+    }
+
     return false
   }
 
@@ -320,7 +434,9 @@ export default function ChessGame() {
       const result = gameCopy.move(move)
       if (result) {
         setGame(gameCopy)
-        checkWinCondition(gameCopy)
+        if (checkWinCondition(gameCopy)) {
+          return true
+        }
         return true
       }
     } catch (e) {
@@ -377,7 +493,6 @@ export default function ChessGame() {
         if (checkWinCondition(gameCopy)) {
           clearInterval(interval)
           clearInterval(progressInterval)
-          setTimeout(resetGame, RESET_DELAY)
         }
       }, CHAOS_INTERVAL)
 
@@ -392,26 +507,55 @@ export default function ChessGame() {
     }
   }, [game, winner, votingOptions, totalVotes, generateVotingOptions])
 
+  // Replace Stockfish initialization with AI move effect
+  useEffect(() => {
+    if (game.turn() === 'b' && !winner) {
+      // Add small delay to show "AI thinking"
+      setTimeout(() => {
+        const bestMove = findBestMove(game)
+        makeMove(bestMove)
+      }, 500)
+    }
+  }, [game, winner])
+
   return (
     <div className="w-full max-w-[1200px] mx-auto mt-8">
       <div className="flex gap-8">
-        <div className="flex-1 bg-white/10 backdrop-blur-sm rounded-lg p-4">
+        <div className="flex-1 bg-white/5 backdrop-blur-md rounded-lg p-4">
           <div className="text-center mb-4">
             <p className="text-lg font-semibold text-white">
-              {game.turn() === 'w' ? 'White' : 'Black'} to move
+              {game.turn() === 'w' ? 'Your turn' : 'AI thinking...'}
             </p>
           </div>
 
-          <Chessboard 
-            position={game.fen()}
-            onPieceDrop={(source, target) => {
-              return makeMove({
-                from: source,
-                to: target,
-                promotion: 'q'
-              })
-            }}
-          />
+          <div className="relative z-50">
+            <Chessboard 
+              position={game.fen()}
+              onPieceDrop={(source, target) => {
+                if (game.turn() === 'w') {
+                  return makeMove({
+                    from: source,
+                    to: target,
+                    promotion: 'q'
+                  })
+                }
+                return false
+              }}
+              customDarkSquareStyle={{ 
+                backgroundColor: '#B58863'  // Classic dark wood color
+              }}
+              customLightSquareStyle={{ 
+                backgroundColor: '#F0D9B5'  // Classic light wood color
+              }}
+              boardStyle={{
+                borderRadius: '8px',
+                boxShadow: '0 8px 32px 0 rgba(31, 38, 135, 0.2)',
+                border: '2px solid #8B4513',  // Dark wood border
+                background: 'linear-gradient(45deg, #8B4513, #A0522D)',  // Wood gradient border
+                padding: '10px'
+              }}
+            />
+          </div>
           {winner ? (
             <div className="mt-4 text-center bg-black/50 rounded-lg p-4">
               <h3 className="text-3xl font-bold text-white animate-bounce">
