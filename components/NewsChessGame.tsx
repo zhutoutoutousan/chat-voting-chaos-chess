@@ -39,6 +39,8 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
   const [selectedNews, setSelectedNews] = useState<any>(null)
   const [isDrawerOpen, setIsDrawerOpen] = useState(false)
   const [gameStatus, setGameStatus] = useState<'playing' | 'checkmate' | 'missing_king' | 'stalemate'>('playing')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [hasMorePages, setHasMorePages] = useState(true)
 
   useEffect(() => {
     // Start progress countdown
@@ -62,23 +64,20 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
 
   useEffect(() => {
     async function loadNewsEffects() {
-      const news = await fetchNewsForPlayers(player1, player2)
-      console.log(news)
+      const { news, meta } = await fetchNewsForPlayers(player1, player2)
+      console.log('News response:', { news, meta })
       
-      if (!news.length) {
+      if (news.length === 0) {
         onNoNews?.()
         return
       }
 
-      const initialNews = news.slice(0, 5)
-      const remainingNews = news.slice(5)
-      const effects = await generateEffectsFromNews(initialNews)
-      
+      const effects = await generateEffectsFromNews(news)
       setNewsEffects(effects)
       
       const newEngine = new NewsChessEngine(
         effects,
-        remainingNews,
+        [], // No remaining news needed since we'll fetch next page
         (updatedGame) => {
           setGame(new Chess(updatedGame.fen()))
           updateGameStatus(updatedGame)
@@ -91,6 +90,10 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
       setEngine(newEngine)
       newEngine.start()
       setLoading(false)
+      
+      // Set initial pagination state
+      setCurrentPage(meta.page)
+      setHasMorePages(meta.found > meta.returned)
     }
 
     loadNewsEffects()
@@ -224,6 +227,28 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
       </div>
     )
   }
+
+  const fetchNextPage = async () => {
+    if (!hasMorePages) return
+    
+    const nextPage = currentPage + 1
+    const { news, meta } = await fetchNewsForPlayers(player1, player2, nextPage)
+    
+    if (news.length > 0) {
+      setCurrentPage(nextPage)
+      const newEffects = await generateEffectsFromNews(news)
+      setNewsEffects(prev => [...prev, ...newEffects])
+      setHasMorePages(meta.found > (meta.page * meta.limit))
+    } else {
+      setHasMorePages(false)
+    }
+  }
+
+  useEffect(() => {
+    if (newsEffects.length === 0 && hasMorePages) {
+      fetchNextPage()
+    }
+  }, [newsEffects.length])
 
   if (loading) {
     return (

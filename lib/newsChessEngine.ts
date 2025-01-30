@@ -29,8 +29,8 @@ export class NewsChessEngine {
   }
 
   start() {
-    if (this.effects.length < 5) {
-      throw new Error('Need at least 5 news effects to start the game')
+    if (this.effects.length < 3) {
+      throw new Error('Need at least 3 news effects to start the game')
     }
 
     this.startChaosInterval()
