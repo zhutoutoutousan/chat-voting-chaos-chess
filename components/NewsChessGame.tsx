@@ -41,6 +41,8 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
   const [gameStatus, setGameStatus] = useState<'playing' | 'checkmate' | 'missing_king' | 'stalemate'>('playing')
   const [currentPage, setCurrentPage] = useState(1)
   const [hasMorePages, setHasMorePages] = useState(true)
+  const [usedEffects, setUsedEffects] = useState<Set<string>>(new Set())
+  const [loadingEffects, setLoadingEffects] = useState(false)
 
   useEffect(() => {
     // Start progress countdown
@@ -77,7 +79,7 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
       
       const newEngine = new NewsChessEngine(
         effects,
-        [], // No remaining news needed since we'll fetch next page
+        [],
         (updatedGame) => {
           setGame(new Chess(updatedGame.fen()))
           updateGameStatus(updatedGame)
@@ -85,13 +87,13 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
         (effect) => {
           setCurrentEffect(effect)
           setChaosProgress(100)
+          setUsedEffects(prev => new Set([...prev, effect.uuid]))
         }
       )
       setEngine(newEngine)
       newEngine.start()
       setLoading(false)
       
-      // Set initial pagination state
       setCurrentPage(meta.page)
       setHasMorePages(meta.found > meta.returned)
     }
@@ -229,26 +231,67 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
   }
 
   const fetchNextPage = async () => {
-    if (!hasMorePages) return
+    if (!hasMorePages || loadingEffects) return
     
-    const nextPage = currentPage + 1
-    const { news, meta } = await fetchNewsForPlayers(player1, player2, nextPage)
-    
-    if (news.length > 0) {
-      setCurrentPage(nextPage)
-      const newEffects = await generateEffectsFromNews(news)
-      setNewsEffects(prev => [...prev, ...newEffects])
-      setHasMorePages(meta.found > (meta.page * meta.limit))
-    } else {
-      setHasMorePages(false)
+    try {
+      setLoadingEffects(true)
+      // Pause chaos progress
+      if (progressInterval.current) {
+        clearInterval(progressInterval.current)
+      }
+      
+      const nextPage = currentPage + 1
+      const { news, meta } = await fetchNewsForPlayers(player1, player2, nextPage)
+      
+      if (news.length > 0) {
+        setCurrentPage(nextPage)
+        const newEffects = await generateEffectsFromNews(news)
+        setNewsEffects(newEffects) // Replace instead of append
+        setHasMorePages(meta.found > (nextPage * meta.limit))
+        setUsedEffects(new Set()) // Clear used effects
+        
+        // Create new engine with new effects
+        if (engine) {
+          engine.stop() // Stop the old engine
+        }
+        const newEngine = new NewsChessEngine(
+          newEffects,
+          [],
+          (updatedGame) => {
+            setGame(new Chess(updatedGame.fen()))
+            updateGameStatus(updatedGame)
+          },
+          (effect) => {
+            setCurrentEffect(effect)
+            setChaosProgress(100)
+            setUsedEffects(prev => new Set([...prev, effect.uuid]))
+          }
+        )
+        setEngine(newEngine)
+        newEngine.start()
+        
+        // Restart chaos progress
+        progressInterval.current = setInterval(() => {
+          setChaosProgress(prev => {
+            if (prev <= 0) return 100
+            return prev - 1
+          })
+        }, 100)
+      } else {
+        setHasMorePages(false)
+      }
+    } finally {
+      setLoadingEffects(false)
     }
   }
 
   useEffect(() => {
-    if (newsEffects.length === 0 && hasMorePages) {
+    const allEffectsUsed = newsEffects.every(effect => usedEffects.has(effect.uuid))
+    if (allEffectsUsed && hasMorePages && newsEffects.length > 0) {
       fetchNextPage()
+      setUsedEffects(new Set())
     }
-  }, [newsEffects.length])
+  }, [usedEffects, newsEffects, hasMorePages])
 
   if (loading) {
     return (
@@ -317,29 +360,44 @@ export default function NewsChessGame({ player1, player2, onNoNews }: NewsChessG
           <div>
             <h2 className="text-2xl font-bold mb-4">News Effects</h2>
             <div className="space-y-4">
-              {currentEffect && (
-                <div className="bg-red-500/20 border border-red-500 p-4 rounded animate-pulse">
-                  <div className="font-medium mb-2">ACTIVE EFFECT</div>
-                  <p className="text-sm">{currentEffect.description}</p>
+              {loadingEffects ? (
+                <div className="text-center py-8">
+                  <div className="animate-spin rounded-full h-8 w-8 border-2 border-blue-500 border-t-transparent mb-2 mx-auto"></div>
+                  <p className="text-sm text-gray-400">Loading new chaos effects...</p>
                 </div>
+              ) : (
+                <>
+                  {currentEffect && (
+                    <div className="bg-red-500/20 border border-red-500 p-4 rounded animate-pulse">
+                      <div className="font-medium mb-2">ACTIVE EFFECT</div>
+                      <p className="text-sm">{currentEffect.description}</p>
+                    </div>
+                  )}
+                  {newsEffects.map((effect, i) => (
+                    <div 
+                      key={effect.uuid}
+                      onClick={() => {
+                        setSelectedNews(newsEffects[i])
+                        setIsDrawerOpen(true)
+                      }}
+                      className={`
+                        bg-gray-800 p-4 rounded transition-all duration-200 cursor-pointer
+                        hover:bg-gray-700
+                        ${currentEffect === effect ? 'border border-red-500' : ''}
+                        ${usedEffects.has(effect.uuid) ? 'opacity-50 pointer-events-none' : ''}
+                      `}
+                    >
+                      <div className="font-medium mb-2">
+                        {effect.type.replace('_', ' ').toUpperCase()}
+                        {usedEffects.has(effect.uuid) && (
+                          <span className="ml-2 text-xs text-gray-400">(Used)</span>
+                        )}
+                      </div>
+                      <p className="text-gray-300 text-sm">{effect.description}</p>
+                    </div>
+                  ))}
+                </>
               )}
-              {newsEffects.map((effect, i) => (
-                <div 
-                  key={i}
-                  onClick={() => {
-                    setSelectedNews(newsEffects[i])
-                    setIsDrawerOpen(true)
-                  }}
-                  className={`
-                    bg-gray-800 p-4 rounded transition-all duration-200 cursor-pointer
-                    hover:bg-gray-700
-                    ${currentEffect === effect ? 'border border-red-500' : ''}
-                  `}
-                >
-                  <div className="font-medium mb-2">{effect.type.replace('_', ' ').toUpperCase()}</div>
-                  <p className="text-gray-300 text-sm">{effect.description}</p>
-                </div>
-              ))}
             </div>
           </div>
         </div>
