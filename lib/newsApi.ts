@@ -4,20 +4,21 @@ const NEWS_API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
 const LLM_API_KEY = process.env.NEXT_PUBLIC_OPENROUTER_API_KEY
 
 export interface NewsEffect {
+  // Chaos effect type
   type: 'piece_swap' | 'random_move' | 'piece_multiply' | 'piece_vanish'
-  description: string
-  // News article fields
-  source: {
-    id: string | null
-    name: string
-  }
-  author: string
+  // News API fields
+  uuid: string
   title: string
   description: string
+  keywords: string
+  snippet: string
   url: string
-  urlToImage: string
-  publishedAt: string
-  content: string
+  image_url: string | null
+  language: string
+  published_at: string
+  source: string
+  categories: string[]
+  relevance_score: number | null
 }
 
 interface OpenRouterResponse {
@@ -60,32 +61,82 @@ async function analyzeSentiment(text: string): Promise<'positive' | 'negative' |
 export async function generateEffectsFromNews(articles: any[]): Promise<NewsEffect[]> {
   const effects: NewsEffect[] = []
 
-  for (const article of articles) {
+  // Take only the first 3 articles for effects
+  for (const article of articles.slice(0, 3)) {
     const text = `${article.title} ${article.description}`
     const sentiment = await analyzeSentiment(text)
     
     effects.push({
       type: sentiment === 'positive' ? 'piece_multiply' :
             sentiment === 'negative' ? 'piece_vanish' : 'random_move',
-      description: `${sentiment} news effect: "${article.title}"`,
-      // Include all article fields
-      ...article
+      // Map all API fields
+      uuid: article.uuid,
+      title: article.title,
+      description: article.description || '',
+      keywords: article.keywords || '',
+      snippet: article.snippet || '',
+      url: article.url,
+      image_url: article.image_url,
+      language: article.language || 'en',
+      published_at: article.published_at,
+      source: article.source,
+      categories: article.categories || [],
+      relevance_score: article.relevance_score
     })
   }
 
   return effects
 }
 
-export async function fetchNewsForPlayers(player1: string, player2: string) {
-  const response = await fetch(
-    `https://newsapi.org/v2/everything?` +
-    `q=${encodeURIComponent(`"${player1}" AND "${player2}"`)}&` +
-    `sortBy=relevancy&` +
-    `apiKey=${NEWS_API_KEY}`
-  )
-  
-  const data = await response.json()
-  return data.articles || []
+export async function fetchNewsForPlayers(player1: string, player2: string, page: number = 1) {
+  try {
+    const searchQuery = `"${player1}" + 'and' + "${player2}"`;
+    const categories = 'sports,general';
+    const searchFields = 'title,description,keywords';
+    const sort = 'relevance_score';
+    const limit = '3';
+
+    const url = new URL('https://api.thenewsapi.com/v1/news/all');
+    url.searchParams.append('api_token', NEWS_API_KEY || '');
+    url.searchParams.append('search', searchQuery);
+    url.searchParams.append('categories', categories);
+    url.searchParams.append('search_fields', searchFields);
+    url.searchParams.append('sort', sort);
+    url.searchParams.append('limit', limit);
+    url.searchParams.append('language', 'en');
+    url.searchParams.append('page', page.toString());
+
+    const response = await fetch(url.toString());
+
+    if (!response.ok) {
+      throw new Error(`News API responded with status: ${response.status}`);
+    }
+
+    const data: NewsResponse = await response.json();
+    
+    // Return both the news data and meta information
+    return {
+      news: data.data.map(article => ({
+        type: 'random_move' as const,
+        uuid: article.uuid,
+        title: article.title,
+        description: article.description || '',
+        keywords: article.keywords || '',
+        snippet: article.snippet || '',
+        url: article.url,
+        image_url: article.image_url,
+        language: article.language || 'en',
+        published_at: article.published_at,
+        source: article.source,
+        categories: article.categories || [],
+        relevance_score: article.relevance_score
+      })),
+      meta: data.meta
+    };
+  } catch (error) {
+    console.error('Error fetching player news:', error);
+    return { news: [], meta: { found: 0, returned: 0, limit: 3, page } };
+  }
 }
 
 export function applyNewsEffect(game: Chess, effect: NewsEffect) {
@@ -105,33 +156,49 @@ export function applyNewsEffect(game: Chess, effect: NewsEffect) {
   }
 }
 
-const API_KEY = process.env.NEXT_PUBLIC_NEWS_API_KEY
+const API_KEY = process.env.NEXT_PUBLIC_THENEWSAPI_KEY
 
 interface NewsArticle {
-  source: {
-    id: string | null;
-    name: string;
-  };
-  author: string | null;
+  uuid: string;
   title: string;
   description: string;
+  snippet: string;
   url: string;
-  urlToImage: string | null;
-  publishedAt: string;
-  content: string;
+  image_url: string | null;
+  published_at: string;
+  source: string;
+  categories: string[];
 }
 
 interface NewsResponse {
-  status: string;
-  totalResults: number;
-  articles: NewsArticle[];
+  meta: {
+    found: number;
+    returned: number;
+    limit: number;
+    page: number;
+  };
+  data: NewsArticle[];
 }
 
 export async function getChessNews(): Promise<NewsArticle[]> {
   try {
-    const response = await fetch(
-      `https://newsapi.org/v2/everything?q=chess&sortBy=relevancy&apiKey=${NEWS_API_KEY}`
-    );
+    // Build search query with URL encoding
+    const searchQuery = encodeURIComponent('chess + (tournament | championship | grandmaster)');
+    const categories = 'sports,general';
+    const searchFields = 'title,description,keywords';
+    const sort = 'relevance_score';
+    const limit = '5';
+
+    const url = new URL('https://api.thenewsapi.com/v1/news/all');
+    url.searchParams.append('api_token', API_KEY || '');
+    url.searchParams.append('search', searchQuery);
+    url.searchParams.append('categories', categories);
+    url.searchParams.append('search_fields', searchFields);
+    url.searchParams.append('sort', sort);
+    url.searchParams.append('limit', limit);
+    url.searchParams.append('language', 'en');
+
+    const response = await fetch(url.toString());
 
     if (!response.ok) {
       throw new Error(`News API responded with status: ${response.status}`);
@@ -140,44 +207,54 @@ export async function getChessNews(): Promise<NewsArticle[]> {
     const data: NewsResponse = await response.json();
     
     // Map and sanitize the response
-    return data.articles.map(article => ({
+    return data.data.map(article => ({
       ...article,
       // Ensure required fields exist
       title: article.title || 'Untitled',
-      description: article.description || 'No description available',
+      description: article.description || article.snippet || 'No description available',
       url: article.url || '#',
-      urlToImage: article.urlToImage || null,
-      publishedAt: article.publishedAt || new Date().toISOString(),
-      source: {
-        id: article.source?.id || null,
-        name: article.source?.name || 'Unknown Source'
-      }
+      image_url: article.image_url || null,
+      published_at: article.published_at || new Date().toISOString(),
+      source: article.source || 'Unknown Source',
+      categories: article.categories || []
     }));
   } catch (error) {
     console.error('Error fetching chess news:', error);
     // Return mock data in case of error
     return [
       {
-        source: { id: null, name: 'Chess.com' },
-        author: 'Chess.com Staff',
+        uuid: '1',
         title: 'Magnus Carlsen Wins Another Tournament',
         description: 'The World Champion continues his dominance in competitive chess.',
+        snippet: 'Full coverage of the tournament...',
         url: 'https://chess.com',
-        urlToImage: null,
-        publishedAt: new Date().toISOString(),
-        content: 'Full article content...'
+        image_url: null,
+        published_at: new Date().toISOString(),
+        source: 'Chess.com',
+        categories: ['sports', 'chess']
       },
       {
-        source: { id: null, name: 'FIDE' },
-        author: 'FIDE Press',
+        uuid: '2',
         title: 'Upcoming Chess Championship Announced',
         description: 'FIDE announces dates for the next World Chess Championship cycle.',
+        snippet: 'Details about the championship...',
         url: 'https://fide.com',
-        urlToImage: null,
-        publishedAt: new Date().toISOString(),
-        content: 'Full article content...'
+        image_url: null,
+        published_at: new Date().toISOString(),
+        source: 'FIDE',
+        categories: ['sports', 'chess']
       },
-      // Add more mock articles as needed
+      {
+        uuid: '3',
+        title: 'Chess AI Makes Breakthrough',
+        description: 'New developments in chess artificial intelligence.',
+        snippet: 'Latest in chess technology...',
+        url: 'https://chess.com/news',
+        image_url: null,
+        published_at: new Date().toISOString(),
+        source: 'Chess.com',
+        categories: ['tech', 'chess']
+      }
     ];
   }
 } 
