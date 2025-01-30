@@ -3,7 +3,7 @@
 import { UserButton, SignInButton, useUser } from "@clerk/nextjs"
 import { Button } from "./ui/button"
 import { FloatingDock } from "./ui/floating-dock"
-import { Home, Swords, BookOpen, Users, Bell } from "lucide-react"
+import { Home, Swords, BookOpen, Users, Bell, Globe, Newspaper } from "lucide-react"
 
 export default function Dock() {
   const { isSignedIn } = useUser()
@@ -16,17 +16,27 @@ export default function Dock() {
     },
     {
       title: "Play",
-      href: "/waitlist",
+      href: "/play",
       icon: <Swords className="h-4 w-4" />,
     },
     {
+      title: "World Chess",
+      href: "/worldchess",
+      icon: <Globe className="h-4 w-4" />,
+    },
+    {
+      title: "News Chess",
+      href: "/newschess",
+      icon: <Newspaper className="h-4 w-4" />,
+    },
+    {
       title: "Learn",
-      href: "/waitlist",
+      href: "/learn",
       icon: <BookOpen className="h-4 w-4" />,
     },
     {
       title: "Community",
-      href: "/waitlist",
+      href: "/community",
       icon: <Users className="h-4 w-4" />,
     },
     {
