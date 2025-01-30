@@ -64,9 +64,9 @@ const FloatingDockMobile = ({
                 <Link
                   href={item.href}
                   key={item.title}
-                  className="h-10 w-10 rounded-full bg-gray-50 dark:bg-neutral-900 flex items-center justify-center"
+                  className="h-10 w-10 rounded-full bg-white dark:bg-neutral-800 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-150 hover:scale-110 hover:bg-amber-50 dark:hover:bg-neutral-700 group"
                 >
-                  <div className="h-4 w-4">{item.icon}</div>
+                  <div className="h-4 w-4 text-amber-600 dark:text-amber-400 group-hover:text-amber-500 transition-colors duration-150">{item.icon}</div>
                 </Link>
               </motion.div>
             ))}
@@ -75,9 +75,9 @@ const FloatingDockMobile = ({
       </AnimatePresence>
       <button
         onClick={() => setOpen(!open)}
-        className="h-10 w-10 rounded-full bg-gray-50 dark:bg-neutral-800 flex items-center justify-center"
+        className="h-10 w-10 rounded-full bg-white dark:bg-neutral-800 flex items-center justify-center shadow-sm hover:shadow-md transition-all duration-150 hover:scale-110 hover:bg-amber-50 dark:hover:bg-neutral-700"
       >
-        <IconLayoutNavbarCollapse className="h-5 w-5 text-neutral-500 dark:text-neutral-400" />
+        <IconLayoutNavbarCollapse className="h-5 w-5 text-amber-600 dark:text-amber-400 hover:text-amber-500 transition-colors duration-150" />
       </button>
     </div>
   );
@@ -96,7 +96,7 @@ const FloatingDockDesktop = ({
       onMouseMove={(e) => mouseX.set(e.pageX)}
       onMouseLeave={() => mouseX.set(Infinity)}
       className={cn(
-        "mx-auto hidden md:flex h-16 gap-4 items-end  rounded-2xl bg-gray-50 dark:bg-neutral-900 px-4 pb-3",
+        "mx-auto hidden md:flex h-16 gap-4 items-end rounded-2xl bg-white dark:bg-neutral-800 px-4 pb-3 shadow-sm backdrop-blur-sm bg-opacity-80",
         className
       )}
     >
@@ -166,7 +166,11 @@ function IconContainer({
         style={{ width, height }}
         onMouseEnter={() => setHovered(true)}
         onMouseLeave={() => setHovered(false)}
-        className="aspect-square rounded-full bg-gray-200 dark:bg-neutral-800 flex items-center justify-center relative"
+        className="aspect-square rounded-full bg-gray-100 dark:bg-neutral-700 flex items-center justify-center relative shadow-sm hover:shadow-md transition-all duration-0 group hover:bg-amber-50 dark:hover:bg-neutral-600"
+        whileHover={{
+          boxShadow: "0 0 20px rgba(251, 191, 36, 0.3)",
+          transition: { duration: 0.15 }
+        }}
       >
         <AnimatePresence>
           {hovered && (
@@ -174,7 +178,8 @@ function IconContainer({
               initial={{ opacity: 0, y: 10, x: "-50%" }}
               animate={{ opacity: 1, y: 0, x: "-50%" }}
               exit={{ opacity: 0, y: 2, x: "-50%" }}
-              className="px-2 py-0.5 whitespace-pre rounded-md bg-gray-100 border dark:bg-neutral-800 dark:border-neutral-900 dark:text-white border-gray-200 text-neutral-700 absolute left-1/2 -translate-x-1/2 -top-8 w-fit text-xs"
+              transition={{ duration: 0.15 }}
+              className="px-2 py-0.5 whitespace-pre rounded-md bg-white border dark:bg-neutral-700 dark:border-neutral-600 dark:text-amber-300 border-amber-200 text-amber-700 absolute left-1/2 -translate-x-1/2 -top-8 w-fit text-xs shadow-sm backdrop-blur-sm bg-opacity-90"
             >
               {title}
             </motion.div>
@@ -182,7 +187,7 @@ function IconContainer({
         </AnimatePresence>
         <motion.div
           style={{ width: widthIcon, height: heightIcon }}
-          className="flex items-center justify-center"
+          className="flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:text-amber-500 transition-colors duration-150"
         >
           {icon}
         </motion.div>
