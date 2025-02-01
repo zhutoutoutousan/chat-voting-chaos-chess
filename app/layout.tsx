@@ -82,8 +82,17 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            {children}
-            <Dock />
+            
+            {/* Main content */}
+            <main className="relative">
+              {children}
+            </main>
+            
+            {/* Dock with highest z-index */}
+            <div className="fixed bottom-0 left-0 right-0 z-50">
+              <Dock />
+            </div>
+            
             <Analytics />
           </ThemeProvider>
         </ClerkProvider>

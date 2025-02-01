@@ -190,7 +190,7 @@ export async function getChessNews(): Promise<NewsArticle[]> {
     const limit = '5';
 
     const url = new URL('https://api.thenewsapi.com/v1/news/all');
-    url.searchParams.append('api_token', API_KEY || '');
+    url.searchParams.append('api_token', NEWS_API_KEY || '');
     url.searchParams.append('search', searchQuery);
     url.searchParams.append('categories', categories);
     url.searchParams.append('search_fields', searchFields);
