@@ -40,6 +40,76 @@ pnpm build
 ```
 
 
+## 🧪 Testing
+
+### Unit Tests
+We use Jest and React Testing Library for comprehensive unit testing:
+
+```bash
+# Run unit tests
+pnpm test
+
+# Run tests in watch mode
+pnpm test:watch
+
+# Generate coverage report
+pnpm test:coverage
+```
+
+Key test suites:
+- `ChessGame.test.tsx`: Core game mechanics
+- `NewsEffects.test.tsx`: News integration effects
+- `ChaosRules.test.tsx`: Dynamic rule changes
+- `GameState.test.tsx`: State management
+- `Animations.test.tsx`: Visual effects
+
+### End-to-End Tests
+We use Playwright for end-to-end testing across multiple browsers:
+
+```bash
+# Install Playwright browsers
+pnpm exec playwright install
+
+# Run E2E tests
+pnpm test:e2e
+
+# Run E2E tests with UI
+pnpm test:e2e:ui
+
+# Run specific browser tests
+pnpm test:e2e:chrome
+pnpm test:e2e:firefox
+pnpm test:e2e:safari
+```
+
+E2E test scenarios:
+- Complete game flows
+- Multiplayer interactions
+- News effect triggers
+- Authentication flows
+- Responsive design
+- Performance metrics
+
+### Testing Philosophy
+- **Coverage Target**: Maintain >80% code coverage
+- **Visual Regression**: Automated screenshot comparisons
+- **Performance Testing**: Lighthouse CI integration
+- **Accessibility Testing**: Automated a11y checks
+- **Cross-browser Testing**: Support for Chrome, Firefox, Safari
+- **Mobile Testing**: Responsive design verification
+- **Load Testing**: WebSocket connection stress tests
+
+### CI/CD Pipeline
+```yaml
+# Test stages in our CI pipeline
+stages:
+  - lint
+  - unit-test
+  - e2e-test
+  - performance
+  - deploy
+```
+
 ## 🛠️ Tech Stack
 
 - **Frontend**: Next.js 14, React, TypeScript
