@@ -14,12 +14,15 @@ body {
   /* Custom Scrollbar for Firefox */
   scrollbar-width: thin;
   scrollbar-color: rgba(255, 255, 255, 0.3) rgba(0, 0, 0, 0.2);
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
 
 /* Custom Scrollbar for Webkit browsers */
 ::-webkit-scrollbar {
   width: 8px;
   height: 8px;
+  display: none;
 }
 
 ::-webkit-scrollbar-track {
