@@ -376,13 +376,4 @@ class AblyClient {
   }
 }
 
-export const socketClient = new AblyClient();
-
-// Add error boundary handler
-window?.addEventListener('unhandledrejection', (event) => {
-  if (event.reason?.message?.includes('Ably')) {
-    console.error('Ably error:', event.reason);
-    // Optionally show a user-friendly error message
-    // toast.error('Lost connection to game server. Attempting to reconnect...');
-  }
-}); 
+export const socketClient = new AblyClient(); 

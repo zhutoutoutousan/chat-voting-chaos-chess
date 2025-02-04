@@ -200,9 +200,7 @@ export default function LobbyPage() {
                       <>
                         <button
                           onClick={() => {
-                            if (window.confirm('Are you sure you want to terminate this lobby?')) {
                               terminateLobby(lobby.id);
-                            }
                           }}
                           className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
                         >
