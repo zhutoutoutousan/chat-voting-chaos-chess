@@ -4,6 +4,7 @@ import Dock from '@/components/Dock'
 import './globals.css'
 import type { Metadata } from 'next'
 import { Analytics } from "@vercel/analytics/react"
+import { AblyErrorBoundary } from '@/components/AblyErrorBoundary'
 
 export const metadata: Metadata = {
   title: {
@@ -75,6 +76,7 @@ export default function RootLayout({
         />
       </head>
       <body>
+        <AblyErrorBoundary />
         <ClerkProvider>
           <ThemeProvider
             attribute="class"
