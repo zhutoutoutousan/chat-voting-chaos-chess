@@ -44,13 +44,6 @@ class SocketClient {
         ...options.query,
         token
       },
-      transports: ['websocket'], // Force WebSocket only
-      autoConnect: true,
-      reconnection: true,
-      reconnectionDelay: 1000,
-      reconnectionDelayMax: 5000,
-      reconnectionAttempts: 5,
-      withCredentials: true,
       auth: {
         token
       }
