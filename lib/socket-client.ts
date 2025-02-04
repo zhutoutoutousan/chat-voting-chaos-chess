@@ -14,7 +14,11 @@ class SocketClient {
   constructor() {
     // Use separate URLs for HTTP and WebSocket
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    // Force WSS in production
     this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001'
+    if (process.env.NODE_ENV === 'production') {
+      this.wsUrl = this.wsUrl.replace('ws://', 'wss://')
+    }
   }
 
   connect(options: SocketOptions = {}) {
