@@ -4,6 +4,7 @@ import { apiClient } from './api-client'
 interface SocketOptions {
   path?: string
   query?: Record<string, string>
+  namespace?: string
 }
 
 class SocketClient {
@@ -35,7 +36,9 @@ class SocketClient {
     // Get auth token from Clerk
     const token = window.sessionStorage.getItem('__clerk_db_jwt');
 
-    this.socket = io(this.wsUrl, {
+    // Include namespace in the connection URL
+    const namespace = options.namespace || '/lobby';
+    this.socket = io(`${this.wsUrl}${namespace}`, {
       path: '/socket.io',
       query: {
         ...options.query,
@@ -107,6 +110,7 @@ class SocketClient {
   connectToLobby(userId: string) {
     console.log('Connecting to lobby with userId:', userId);
     return this.connect({
+      namespace: '/lobby',
       query: { userId }
     });
   }
@@ -114,9 +118,9 @@ class SocketClient {
   // Game specific methods
   connectToGame(gameId: string, userId: string) {
     return this.connect({
-      path: '/game',
+      namespace: '/game',
       query: { gameId, userId }
-    })
+    });
   }
 }
 
