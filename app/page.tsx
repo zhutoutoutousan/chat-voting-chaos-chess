@@ -133,88 +133,6 @@ const FeatureCard = memo(({ feature, index }: { feature: any, index: number }) =
 
 FeatureCard.displayName = 'FeatureCard'
 
-// Update the scrollbar styles constant
-const SCROLLBAR_STYLES = `
-  /* Hide body scrollbar */
-  body {
-    scrollbar-width: none;
-    -ms-overflow-style: none;
-  }
-  
-  body::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Custom scrollbar for snap container */
-  .chaos-scrollbar {
-    scrollbar-width: thin;
-    scrollbar-color: rgba(255, 0, 0, 0.5) transparent;
-  }
-
-  .chaos-scrollbar::-webkit-scrollbar {
-    width: 12px;
-  }
-
-  .chaos-scrollbar::-webkit-scrollbar-track {
-    background: rgba(0, 0, 0, 0.3);
-    border-radius: 20px;
-    margin: 10px;
-    border: 2px solid rgba(255, 255, 255, 0.1);
-    backdrop-filter: blur(5px);
-  }
-
-  .chaos-scrollbar::-webkit-scrollbar-thumb {
-    background: linear-gradient(
-      45deg,
-      rgba(255, 0, 0, 0.7),
-      rgba(255, 0, 255, 0.7),
-      rgba(0, 0, 255, 0.7)
-    );
-    border-radius: 20px;
-    border: 2px solid rgba(255, 255, 255, 0.2);
-    box-shadow: 
-      0 0 10px rgba(255, 0, 0, 0.5),
-      0 0 20px rgba(255, 0, 255, 0.3);
-    animation: scrollbarGlow 3s infinite;
-  }
-
-  .chaos-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: linear-gradient(
-      45deg,
-      rgba(255, 0, 0, 0.9),
-      rgba(255, 0, 255, 0.9),
-      rgba(0, 0, 255, 0.9)
-    );
-    box-shadow: 
-      0 0 15px rgba(255, 0, 0, 0.7),
-      0 0 30px rgba(255, 0, 255, 0.5);
-  }
-
-  @keyframes scrollbarGlow {
-    0% {
-      filter: hue-rotate(0deg) brightness(1);
-    }
-    50% {
-      filter: hue-rotate(180deg) brightness(1.3);
-    }
-    100% {
-      filter: hue-rotate(360deg) brightness(1);
-    }
-  }
-`
-
-// Create a custom hook for the scrollbar styles
-function useChaosScrollbar() {
-  useEffect(() => {
-    const styleSheet = document.createElement("style")
-    styleSheet.innerText = SCROLLBAR_STYLES
-    document.head.appendChild(styleSheet)
-    return () => {
-      document.head.removeChild(styleSheet)
-    }
-  }, [])
-}
-
 export default function Home() {
   const { userId } = useAuth()
   const containerRef = useRef(null)
@@ -258,11 +176,11 @@ export default function Home() {
     [viewport.width, viewport.height]
   )
 
-  // Use the custom hook inside the component
-  useChaosScrollbar()
-
   return (
-    <div className="relative" ref={containerRef}>
+    <div 
+      className="relative h-screen overflow-y-auto snap-y snap-mandatory"
+      ref={containerRef}
+    >
       {/* Background with 3D effects */}
       <div className="fixed inset-0 -z-10">
         <ErrorBoundary>
@@ -270,18 +188,18 @@ export default function Home() {
         </ErrorBoundary>
       </div>
 
-      {/* Snap sections container */}
-      <div className="h-screen overflow-y-auto snap-y snap-mandatory chaos-scrollbar">
+      {/* Content sections with snap points */}
+      <div className="relative z-10">
         {/* Hero Section */}
         <MotionSection 
-          className="h-screen snap-start flex items-center justify-center p-4"
+          className="h-screen snap-start flex items-center justify-center p-4 pt-16 md:pt-4"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ duration: 0.8 }}
         >
           <div className="container mx-auto grid md:grid-cols-2 gap-8 items-center">
             {/* Hero Text */}
-            <div className="text-center md:text-left">
+            <div className="text-center md:text-left mt-16 md:mt-0">
               <MotionDiv 
                 className="relative mb-6 inline-block group"
                 initial={{ scale: 0.8 }}
@@ -375,7 +293,7 @@ export default function Home() {
 
             {/* Chess Game */}
             <MotionDiv
-              className="aspect-square w-full max-w-[800px] mx-auto backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-white/10"
+              className="aspect-square w-full max-w-[800px] mx-auto backdrop-blur-sm bg-white/5 rounded-2xl p-4 border border-white/10 hidden md:block"
               initial={{ opacity: 0, x: 20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.4 }}
@@ -495,9 +413,9 @@ export default function Home() {
           </div>
         </MotionSection>
 
-        {/* Features Section - Last snap section */}
+        {/* Features Section */}
         <MotionSection 
-          className="h-screen snap-start flex items-center relative"
+          className="min-h-screen snap-start flex items-center relative"
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
@@ -531,29 +449,30 @@ export default function Home() {
             </div>
           </div>
         </MotionSection>
+
+        {/* Footer Section */}
+        <MotionSection 
+          className="h-screen snap-start flex items-center justify-center relative overflow-hidden"
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+        >
+          <motion.div
+            className="absolute inset-0 backdrop-blur-sm bg-black/30"
+            style={{ opacity: useTransform(scrollYProgress, [0.8, 1], [0, 1]) }}
+          />
+          <div className="absolute inset-0 flex items-center justify-center">
+            <ChaoticFooter />
+          </div>
+        </MotionSection>
       </div>
 
-      {/* Footer - Outside snap container */}
-      <div className="relative bg-black/50">
-        <div className="absolute inset-0 backdrop-blur-sm" />
-        <div className="relative z-10">
-          <ChaoticFooter />
-        </div>
-      </div>
-
-      {/* Scroll indicator */}
+      {/* Add scroll indicator */}
       <motion.div 
         className="fixed bottom-8 left-1/2 -translate-x-1/2 z-50"
         animate={{
           y: [0, 10, 0],
           opacity: [1, 0.5, 1],
-        }}
-        style={{
-          opacity: useTransform(
-            scrollYProgress, 
-            [0, 0.8, 0.9], 
-            [1, 1, 0]
-          )
         }}
         transition={{
           duration: 2,
