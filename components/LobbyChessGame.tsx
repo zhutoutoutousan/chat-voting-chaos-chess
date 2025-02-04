@@ -7,60 +7,50 @@ import { useAuth } from "@clerk/nextjs"
 import { motion } from 'framer-motion'
 import { apiClient } from '@/lib/api-client'
 
-interface GameState {
-  fen: string
-  turn: 'w' | 'b'
-  status: 'active' | 'completed'
-  winner?: string
-  timeControl: string
-  mode: string
-  players: {
-    white: { userId: string }
-    black: { userId: string }
-  }
+type GameState = {
+  fen: string;
+  players: { white: string; black: string };
+  status: 'waiting' | 'playing' | 'finished';
+  turn: 'w' | 'b';
+  lastMove?: string;
+};
+
+interface Props {
+  gameState: GameState;
+  userId: string;
+  onMove: (move: { from: string; to: string; promotion?: string }) => void;
+  isSpectator?: boolean;
 }
 
-export default function LobbyChessGame({ gameId }: { gameId: string }) {
-  const { userId } = useAuth()
-  const [game, setGame] = useState<Chess>(new Chess())
-  const [gameState, setGameState] = useState<GameState | null>(null)
+export default function LobbyChessGame({ gameState, userId, onMove, isSpectator = false }: Props) {
+  const { userId: clerkUserId } = useAuth()
+  const [game, setGame] = useState(new Chess())
   const [orientation, setOrientation] = useState<'white' | 'black'>('white')
 
   useEffect(() => {
-    // Connect to game via WebSocket
-    const ws = new WebSocket(`${apiClient.getWsUrl()}/game/${gameId}`)
-    
-    ws.onmessage = (event) => {
-      const data = JSON.parse(event.data)
-      
-      if (data.type === 'game_state') {
-        setGameState(data.state)
-        game.load(data.state.fen)
-        
-        // Set orientation based on player color
-        if (userId === data.state.players.white.userId) {
-          setOrientation('white')
-        } else if (userId === data.state.players.black.userId) {
-          setOrientation('black')
-        }
-      }
-      
-      if (data.type === 'move') {
-        game.move(data.move)
-        setGame(new Chess(game.fen()))
-      }
+    if (gameState.fen) {
+      const newGame = new Chess()
+      newGame.load(gameState.fen)
+      setGame(newGame)
     }
 
-    return () => {
-      ws.close()
+    // Set orientation based on player's color
+    if (gameState.players.white === userId) {
+      setOrientation('white')
+    } else if (gameState.players.black === userId) {
+      setOrientation('black')
     }
-  }, [gameId, userId])
+  }, [gameState.fen, gameState.players, userId])
 
-  function onDrop(sourceSquare: string, targetSquare: string) {
-    // Don't allow moves if it's not player's turn
-    if (!gameState || 
-        (game.turn() === 'w' && gameState.players.white.userId !== userId) ||
-        (game.turn() === 'b' && gameState.players.black.userId !== userId)) {
+  const onDrop = (sourceSquare: string, targetSquare: string) => {
+    // Don't allow moves if spectating or game is not in playing state
+    if (isSpectator || gameState.status !== 'playing') {
+      return false
+    }
+
+    // Don't allow moves if it's not the player's turn
+    const playerColor = gameState.players.white === userId ? 'w' : 'b'
+    if (gameState.turn !== playerColor) {
       return false
     }
 
@@ -68,30 +58,25 @@ export default function LobbyChessGame({ gameId }: { gameId: string }) {
       const move = game.move({
         from: sourceSquare,
         to: targetSquare,
-        promotion: 'q', // Always promote to queen for simplicity
+        promotion: 'q' // always promote to queen for simplicity
       })
 
       if (move === null) return false
 
-      // Send move to server using API client
-      apiClient.makeMove(gameId, { move })
-        .catch(error => console.error('Failed to make move:', error))
+      onMove({
+        from: sourceSquare,
+        to: targetSquare,
+        promotion: move.promotion
+      })
 
-      setGame(new Chess(game.fen()))
       return true
     } catch (error) {
       return false
     }
   }
 
-  if (!gameState) return <div>Loading...</div>
-
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="w-full h-full"
-    >
+    <div className="relative">
       <Chessboard
         position={game.fen()}
         onPieceDrop={onDrop}
@@ -100,7 +85,17 @@ export default function LobbyChessGame({ gameId }: { gameId: string }) {
           borderRadius: '4px',
           boxShadow: '0 2px 10px rgba(0, 0, 0, 0.5)',
         }}
+        customDarkSquareStyle={{ backgroundColor: '#779952' }}
+        customLightSquareStyle={{ backgroundColor: '#edeed1' }}
       />
-    </motion.div>
+      {gameState.status === 'waiting' && (
+        <div className="absolute inset-0 bg-black bg-opacity-50 flex items-center justify-center">
+          <div className="text-white text-center p-4 rounded bg-gray-800">
+            <p className="text-xl font-semibold">Waiting for opponent</p>
+            <p className="text-sm mt-2">The game will start when both players join</p>
+          </div>
+        </div>
+      )}
+    </div>
   )
 } 

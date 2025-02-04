@@ -6,51 +6,92 @@ import { useRouter } from 'next/navigation'
 import { motion } from 'framer-motion'
 import { IconUsers, IconClock, IconChess } from "@tabler/icons-react"
 import { useLobbySocket } from '@/hooks/useLobbySocket'
+import { socketClient } from '@/lib/socket-client'
 
 export default function LobbyPage() {
   const { userId, signOut } = useAuth()
   const router = useRouter()
   const [timeControl, setTimeControl] = useState('5+0')
   const [mode, setMode] = useState('standard')
+  const [isCreatingLobby, setIsCreatingLobby] = useState(false)
   
-  const { lobbies, error, isCreatingLobby, createLobby, joinLobby } = useLobbySocket(userId!)
+  const { lobbies, isLoading, error, isConnected, refresh, createLobby, joinLobby, terminateLobby, isOwnLobby } = useLobbySocket(userId!)
 
-  const handleCreateLobby = () => {
+  const handleCreateLobby = async () => {
     try {
-      console.log('Creating lobby with:', { timeControl, mode }) // Debug log
-      createLobby({ timeControl, mode })
+      setIsCreatingLobby(true)
+      await createLobby({ timeControl, mode })
     } catch (error) {
       console.error('Error creating lobby:', error)
+    } finally {
+      setIsCreatingLobby(false)
     }
   }
 
-  const handleJoinLobby = (lobbyId: string) => {
-    joinLobby(lobbyId)
+  const handleJoinLobby = async (lobbyId: string) => {
+    try {
+      await joinLobby(lobbyId)
+      // Navigation is handled by onGameCreated callback in useLobbySocket
+    } catch (error) {
+      console.error('Failed to join lobby:', error)
+    }
   }
 
-  // Listen for game creation
-  useEffect(() => {
-    const handleGameCreated = (event: CustomEvent<string>) => {
-      const gameId = event.detail;
-      router.push(`/game/${gameId}`);
-    };
+  const handleSpectateGame = (gameId: string) => {
+    try {
+      router.push(`/game/${gameId}?spectate=true`)
+    } catch (error) {
+      console.error('Failed to spectate game:', error)
+    }
+  }
 
-    window.addEventListener('game_created', handleGameCreated as EventListener);
-    return () => {
-      window.removeEventListener('game_created', handleGameCreated as EventListener);
-    };
-  }, [router]);
+  const handleStartGame = async (lobbyId: string) => {
+    try {
+      await socketClient.initiateGame(lobbyId);
+      // Navigation will be handled by the game_created event
+    } catch (error) {
+      console.error('Failed to start game:', error);
+    }
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-gray-900 mx-auto"></div>
+          <p className="mt-4">Loading lobbies...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (error) {
-    return <div>Error: {error}</div>
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">
+          <p className="text-red-500">Error: {error}</p>
+          <button 
+            onClick={refresh}
+            className="mt-4 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-8">
       <div className="max-w-4xl mx-auto">
-        {/* Header with logout */}
+        {/* Header with connection status and logout */}
         <div className="flex justify-between items-center mb-12">
-          <h1 className="text-4xl font-bold">Game Lobby</h1>
+          <div className="flex items-center gap-4">
+            <h1 className="text-4xl font-bold">Game Lobby</h1>
+            <span className={`inline-block w-3 h-3 rounded-full ${
+              isConnected ? 'bg-green-500' : 'bg-red-500'
+            }`} />
+          </div>
           <button
             onClick={() => signOut()}
             className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors"
@@ -59,96 +100,163 @@ export default function LobbyPage() {
           </button>
         </div>
 
-        {error && (
-          <div className="mb-4 p-4 bg-red-500/10 border border-red-500 rounded-lg text-red-500">
-            {error}
+        {/* Create Game Form */}
+        <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          <h2 className="text-2xl font-semibold mb-4">Create Game</h2>
+          <div className="flex flex-wrap gap-6">
+            <div className="flex-1 min-w-[200px]">
+              <label className="block mb-2">Time Control</label>
+              <select
+                value={timeControl}
+                onChange={(e) => setTimeControl(e.target.value)}
+                className="w-full bg-gray-700 rounded p-2"
+              >
+                <option value="1+0">1 min</option>
+                <option value="3+0">3 min</option>
+                <option value="5+0">5 min</option>
+                <option value="10+0">10 min</option>
+              </select>
+            </div>
+            <div className="flex-1 min-w-[200px]">
+              <label className="block mb-2">Mode</label>
+              <select
+                value={mode}
+                onChange={(e) => setMode(e.target.value)}
+                className="w-full bg-gray-700 rounded p-2"
+              >
+                <option value="standard">Standard</option>
+                <option value="chaos">Chaos</option>
+              </select>
+            </div>
           </div>
-        )}
-
-        {/* Create Game Section */}
-        <div className="backdrop-blur-sm bg-white/10 rounded-xl p-6 mb-8">
-          <h2 className="text-2xl font-semibold mb-6">Create Game</h2>
-          
-          {/* Time Control Selection */}
-          <div className="mb-6">
-            <label className="block mb-2 flex items-center">
-              <IconClock className="mr-2" />
-              Time Control
-            </label>
-            <select
-              value={timeControl}
-              onChange={(e) => setTimeControl(e.target.value)}
-              className="w-full p-2 rounded bg-gray-800 border border-gray-700"
-            >
-              <option value="1+0">1 min</option>
-              <option value="3+0">3 min</option>
-              <option value="5+0">5 min</option>
-              <option value="10+0">10 min</option>
-            </select>
-          </div>
-
-          {/* Game Mode Selection */}
-          <div className="mb-6">
-            <label className="block mb-2 flex items-center">
-              <IconChess className="mr-2" />
-              Game Mode
-            </label>
-            <select
-              value={mode}
-              onChange={(e) => setMode(e.target.value)}
-              className="w-full p-2 rounded bg-gray-800 border border-gray-700"
-            >
-              <option value="standard">Standard</option>
-              <option value="chaos">Chaos</option>
-            </select>
-          </div>
-
           <motion.button
             onClick={handleCreateLobby}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 rounded-lg font-semibold"
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
+            className={`mt-6 w-full py-3 rounded-lg font-semibold ${
+              isCreatingLobby 
+                ? 'bg-gray-600 cursor-not-allowed' 
+                : 'bg-blue-600 hover:bg-blue-700'
+            }`}
+            whileHover={{ scale: isCreatingLobby ? 1 : 1.02 }}
+            whileTap={{ scale: isCreatingLobby ? 1 : 0.98 }}
             disabled={isCreatingLobby}
           >
             {isCreatingLobby ? 'Creating...' : 'Create Game'}
           </motion.button>
         </div>
 
-        {/* Active Games List */}
-        <div className="backdrop-blur-sm bg-white/10 rounded-xl p-6">
-          <h2 className="text-2xl font-semibold mb-6 flex items-center">
-            <IconUsers className="mr-2" />
-            Active Games
-          </h2>
-          <div className="space-y-4">
-            {lobbies.length === 0 ? (
-              <p className="text-gray-400">No active games available</p>
-            ) : (
-              lobbies.map(lobby => (
-                <motion.div
+        {/* Active Lobbies */}
+        <div>
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-2xl font-semibold">All Games</h2>
+            <button
+              onClick={refresh}
+              className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded"
+            >
+              Refresh
+            </button>
+          </div>
+          {lobbies.length === 0 ? (
+            <p className="text-gray-400 text-center py-8">No games available</p>
+          ) : (
+            <div className="grid gap-4 grid-cols-1 md:grid-cols-2">
+              {lobbies.map((lobby) => (
+                <div
                   key={lobby.id}
-                  className="p-4 bg-white/5 rounded-lg flex justify-between items-center"
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
+                  className={`bg-gray-800 rounded-lg p-4 flex justify-between items-center ${
+                    isOwnLobby(lobby) ? 'border-2 border-blue-500' : ''
+                  }`}
                 >
                   <div>
-                    <p className="font-medium">{lobby.mode}</p>
-                    <p className="text-sm text-gray-400">{lobby.timeControl}</p>
+                    <div className="flex items-center gap-2">
+                      <p className="font-semibold">{lobby.mode} - {lobby.timeControl}</p>
+                      <span 
+                        className={`inline-block w-2 h-2 rounded-full ${
+                          lobby.status === 'waiting' 
+                            ? 'bg-green-500' 
+                            : lobby.status === 'active'
+                            ? 'bg-yellow-500'
+                            : 'bg-red-500'
+                        }`}
+                      />
+                      {isOwnLobby(lobby) && (
+                        <span className="text-xs text-blue-400 font-medium">
+                          Your Lobby
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-sm text-gray-400">Host: {lobby.hostName}</p>
+                    {lobby.guestName && (
+                      <p className="text-sm text-gray-400">Guest: {lobby.guestName}</p>
+                    )}
+                    <p className="text-xs text-gray-500">
+                      {lobby.status === 'waiting' 
+                        ? `Expires in ${formatTimeLeft(lobby.expiresAt)}`
+                        : `Game in progress`
+                      }
+                    </p>
                   </div>
-                  <motion.button
-                    onClick={() => handleJoinLobby(lobby.id)}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 rounded-lg"
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
-                  >
-                    Join
-                  </motion.button>
-                </motion.div>
-              ))
-            )}
-          </div>
+                  <div className="flex gap-2">
+                    {isOwnLobby(lobby) && (
+                      <>
+                        <button
+                          onClick={() => {
+                            if (window.confirm('Are you sure you want to terminate this lobby?')) {
+                              terminateLobby(lobby.id);
+                            }
+                          }}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
+                        >
+                          Terminate
+                        </button>
+                        {lobby.status === 'waiting' && lobby.guestId && (
+                          <button
+                            onClick={() => handleStartGame(lobby.id)}
+                            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+                          >
+                            Start Game
+                          </button>
+                        )}
+                      </>
+                    )}
+                    {
+                      lobby.status === 'waiting' && !lobby.guestId && (
+                        <button
+                          onClick={() => handleJoinLobby(lobby.id)}
+                          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+                        >
+                          Wait
+                        </button>
+                      )
+                    }
+                    {lobby.status === 'waiting' && !isOwnLobby(lobby) && !lobby.guestId && (
+                      <button
+                        onClick={() => handleJoinLobby(lobby.id)}
+                        className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
+                      >
+                        Join
+                      </button>
+                    )}
+                    {lobby.status === 'active' && (
+                      <button
+                        onClick={() => handleSpectateGame(lobby.id)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                      >
+                        Spectate
+                      </button>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
   )
+}
+
+function formatTimeLeft(expiresAt: string) {
+  const timeLeft = new Date(expiresAt).getTime() - Date.now();
+  const minutes = Math.floor(timeLeft / 60000);
+  return `${minutes}m`;
 } 

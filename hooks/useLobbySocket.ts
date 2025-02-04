@@ -1,137 +1,166 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback } from 'react'
+import { useUser } from '@clerk/nextjs'
 import { socketClient } from '@/lib/socket-client'
-import { Socket } from 'socket.io-client'
-import { useAuth } from "@clerk/nextjs"
+import { Lobby } from '@/types/lobby'
+import { useRouter } from 'next/navigation'
 
-interface Lobby {
-  id: string
-  hostId: string
-  timeControl: string
-  mode: string
-  createdAt: string
-}
+export type Lobby = {
+  id: string;
+  hostId: string;
+  hostName: string;
+  mode: string;
+  timeControl: string;
+  status: 'waiting' | 'active' | 'finished';
+  createdAt: string;
+  expiresAt: string;
+};
 
-export function useLobbySocket(userId: string) {
-  const { getToken } = useAuth();
-  const [socket, setSocket] = useState<Socket | null>(null)
+export function useLobbySocket() {
+  const { user } = useUser()
+  const router = useRouter()
   const [lobbies, setLobbies] = useState<Lobby[]>([])
   const [error, setError] = useState<string | null>(null)
-  const [isCreatingLobby, setIsCreatingLobby] = useState(false)
-  const [isReconnecting, setIsReconnecting] = useState(false)
+  const [isConnected, setIsConnected] = useState(false)
+  const [isLoading, setIsLoading] = useState(true)
+
+  const fetchLobbies = useCallback(async () => {
+    try {
+      setIsLoading(true)
+      const lobbiesData = await socketClient.getLobbies()
+      setLobbies(lobbiesData)
+      setError(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch lobbies')
+    } finally {
+      setIsLoading(false)
+    }
+  }, [])
 
   useEffect(() => {
-    if (!userId) {
-      console.log('No userId provided, skipping socket connection');
-      return;
-    }
+    if (!user?.id) return;
 
-    const connectWithToken = async () => {
-      setIsReconnecting(true);
+    let isSubscribed = true;
+
+    const connectToLobby = async () => {
       try {
-        const token = await getToken();
-        if (token) {
-          window.sessionStorage.setItem('__clerk_db_jwt', token);
-          console.log('Setting up lobby socket connection for userId:', userId);
-          const socket = socketClient.connectToLobby(userId);
-
-          socket.on('debug', (data: { message: string; data?: any; timestamp: string }) => {
-            console.log(`[Server ${data.timestamp}] ${data.message}`, data.data || '');
-          });
-
-          socket.on('connect', () => {
-            console.log('Lobby socket connected');
-            setError(null);
-          });
-
-          socket.on('connect_error', (error) => {
-            console.error('Lobby socket connection error:', error);
-            setError('Failed to connect to server');
-          });
-
-          socket.on('lobbies', (data: Lobby[]) => {
-            console.log('Received lobbies update:', data);
-            setLobbies(data);
-          });
-
-          socket.on('lobby_created', (lobby: Lobby) => {
-            setLobbies(prev => [...prev, lobby])
-          })
-
-          socket.on('lobby_removed', (lobbyId: string) => {
+        await socketClient.connectToLobby(user.id, {
+          onLobbyCreated: (lobby) => {
+            if (!isSubscribed) return;
+            setLobbies(prev => {
+              const exists = prev.some(l => l.id === lobby.id);
+              if (exists) return prev;
+              return [lobby, ...prev];
+            });
+          },
+          onLobbyRemoved: (lobbyId) => {
             setLobbies(prev => prev.filter(l => l.id !== lobbyId))
-          })
-
-          socket.on('error', (error: { type: string; message: string }) => {
+          },
+          onGameCreated: (gameId) => {
+            console.log('Game created, navigating to:', gameId);
+            router.push(`/game/${gameId}`);
+          },
+          onError: (error) => {
             setError(error.message)
-            setIsCreatingLobby(false)
-          })
-
-          socket.on('game_created', (gameId: string) => {
-            // Dispatch custom event for game creation
-            window.dispatchEvent(new CustomEvent('game_created', { detail: gameId }));
-          })
-
-          socket.on('disconnect', () => {
-            console.log('Disconnected from lobby socket')
-          })
-
-          setSocket(socket)
-        }
-      } catch (error) {
-        console.error('Failed to get token:', error);
-      } finally {
-        setIsReconnecting(false);
+          }
+        });
+        setIsConnected(true);
+        await fetchLobbies();
+      } catch (err) {
+        if (!isSubscribed) return;
+        setError(err instanceof Error ? err.message : 'Failed to connect to lobby');
+        setIsConnected(false);
       }
     };
 
-    connectWithToken();
+    connectToLobby();
+
+    const refreshInterval = setInterval(fetchLobbies, 30000);
 
     return () => {
-      window.sessionStorage.removeItem('__clerk_db_jwt');
-      socket?.disconnect();
+      isSubscribed = false;
+      clearInterval(refreshInterval);
+      socketClient.disconnect();
+    };
+  }, [user?.id, fetchLobbies, router]);
+
+  const createLobby = useCallback(async (data: any) => {
+    if (!user?.id) {
+      setError('User not authenticated')
+      return
     }
-  }, [userId, getToken])
 
-  const createLobby = async (data: { timeControl: string; mode: string }) => {
-    console.log('Creating lobby:', {
-      data,
-      socketConnected: socket?.connected,
-      isCreatingLobby
-    });
+    try {
+      await socketClient.createLobby(user.id, data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to create lobby')
+    }
+  }, [user?.id])
 
-    if (!socket || isCreatingLobby) {
-      console.log('Cannot create lobby:', {
-        reason: !socket ? 'No socket connection' : 'Already creating lobby'
-      });
+  const joinLobby = useCallback(async (lobbyId: string) => {
+    if (!user?.id) {
+      setError('User not authenticated')
+      return
+    }
+
+    try {
+      await socketClient.joinLobby(user.id, lobbyId)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to join lobby')
+    }
+  }, [user?.id])
+
+  const findMatch = useCallback(async () => {
+    if (!user?.id) {
+      setError('User not authenticated')
+      return
+    }
+
+    try {
+      // Implement matchmaking with Ably if needed
+      console.log('Matchmaking not implemented yet')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to find match')
+    }
+  }, [user?.id])
+
+  const cancelMatchmaking = useCallback(async () => {
+    if (!user?.id) {
+      setError('User not authenticated')
+      return
+    }
+
+    try {
+      // Implement matchmaking cancellation with Ably if needed
+      console.log('Matchmaking cancellation not implemented yet')
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to cancel matchmaking')
+    }
+  }, [user?.id])
+
+  const terminateLobby = useCallback(async (lobbyId: string) => {
+    if (!user?.id) {
+      setError('User not authenticated');
       return;
     }
 
-    setIsCreatingLobby(true)
-    setError(null)
-
-    socket.emit('create_lobby', data, (response: { success: boolean; error?: string; lobby?: any }) => {
-      console.log('Create lobby response:', response)
-      setIsCreatingLobby(false)
-      
-      if (!response.success) {
-        setError(response.error || 'Failed to create lobby')
-      } else if (response.lobby) {
-        setLobbies(prev => [...prev, response.lobby])
-      }
-    })
-  }
-
-  const joinLobby = (lobbyId: string) => {
-    if (!socket) return
-    socket.emit('join_lobby', { lobbyId })
-  }
+    try {
+      await socketClient.terminateLobby(user.id, lobbyId);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to terminate lobby');
+    }
+  }, [user?.id]);
 
   return {
-    socket,
-    lobbies,
+    isConnected,
+    isLoading,
     error,
-    isCreatingLobby,
+    lobbies,
     createLobby,
-    joinLobby
+    joinLobby,
+    findMatch,
+    cancelMatchmaking,
+    refresh: fetchLobbies,
+    terminateLobby,
+    isOwnLobby: useCallback((lobby: Lobby) => lobby.hostId === user?.id, [user?.id])
   }
 } 
