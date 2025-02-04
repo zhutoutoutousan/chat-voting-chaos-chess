@@ -9,14 +9,17 @@ interface SocketOptions {
 class SocketClient {
   private socket: Socket | null = null
   private baseUrl: string
+  private wsUrl: string
 
   constructor() {
+    // Use separate URLs for HTTP and WebSocket
     this.baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001'
+    this.wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:3001'
   }
 
   connect(options: SocketOptions = {}) {
     console.log('Attempting socket connection with options:', {
-      baseUrl: this.baseUrl,
+      wsUrl: this.wsUrl,
       options
     });
 
@@ -28,13 +31,13 @@ class SocketClient {
     // Get auth token from Clerk
     const token = window.sessionStorage.getItem('__clerk_db_jwt');
 
-    this.socket = io(`${this.baseUrl}/lobby`, {
+    this.socket = io(this.wsUrl, {
       path: '/socket.io',
       query: {
         ...options.query,
         token
       },
-      transports: ['websocket', 'polling'],
+      transports: ['websocket'], // Force WebSocket only
       autoConnect: true,
       reconnection: true,
       reconnectionDelay: 1000,
