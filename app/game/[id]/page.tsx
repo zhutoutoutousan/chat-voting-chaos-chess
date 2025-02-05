@@ -6,6 +6,9 @@ import { useAuth } from '@/hooks/useAuth'
 import { socketClient } from '@/lib/socket-client'
 import LobbyChessGame from '@/components/LobbyChessGame'
 import { IconCopy, IconArrowLeft } from '@tabler/icons-react'
+import { GameRoom } from '@/components/GameRoom'
+import { useGameState } from '@/hooks/useGameState'
+import { useAuth as useClerkAuth } from '@clerk/nextjs'
 
 type GameState = {
   fen: string;
@@ -13,94 +16,27 @@ type GameState = {
   status: 'waiting' | 'playing' | 'finished';
   turn: 'w' | 'b';
   lastMove?: string;
+  whiteId?: string;
+  blackId?: string;
 };
 
-export default function GamePage() {
+export default function GamePage({ params }: { params: { id: string } }) {
   const router = useRouter()
   const { id: gameId } = useParams()
   const searchParams = useSearchParams()
   const isSpectator = searchParams.get('spectate') === 'true'
   const { userId } = useAuth()
-  const [gameState, setGameState] = useState<GameState | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [isLoading, setIsLoading] = useState(true)
+  const { gameState, isLoading, error } = useGameState(params.id)
   const [copySuccess, setCopySuccess] = useState(false)
+  const { userId: clerkUserId } = useClerkAuth()
 
-  useEffect(() => {
-    if (!gameId || !userId) return;
-    console.log('GamePage mounted')
-    let isSubscribed = true;
-    let isInitialMount = true;
-
-    const connectToGame = async () => {
-      try {
-        await socketClient.connectToGame(gameId as string, userId, 'player', {
-          onGameStateChange: (state) => {
-            if (!isSubscribed) return;
-            setGameState(state);
-          },
-          onMove: (move) => {
-            if (!isSubscribed) return;
-            setGameState(prev => ({
-              ...prev!,
-              fen: move.fen,
-              turn: move.turn,
-              lastMove: move.san
-            }));
-          },
-          onPlayerJoined: (playerId) => {
-            if (!isSubscribed) return;
-            setGameState(prev => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                status: prev.players.white && prev.players.black ? 'playing' : 'waiting',
-                players: {
-                  ...prev.players,
-                  [playerId === userId ? 'white' : 'black']: playerId
-                }
-              };
-            });
-          },
-          onPlayerLeft: (playerId) => {
-            if (!isSubscribed) return;
-            setGameState(prev => {
-              if (!prev) return prev;
-              return {
-                ...prev,
-                status: 'waiting',
-                players: {
-                  ...prev.players,
-                  white: prev.players.white === playerId ? '' : prev.players.white,
-                  black: prev.players.black === playerId ? '' : prev.players.black
-                }
-              };
-            });
-          }
-        });
-        setIsLoading(false);
-      } catch (error) {
-        console.error('Failed to connect to game:', error);
-        setError(error instanceof Error ? error.message : 'Failed to connect to game');
-        setIsLoading(false);
-      }
-    };
-
-    connectToGame();
-
-    return () => {
-      isSubscribed = false;
-      if (!isInitialMount) {
-        socketClient.disconnect(`game:${gameId}`);
-      }
-      isInitialMount = false;
-    };
-  }, [gameId, userId]);
+  // Check for self-play
+  const isSelfPlay = gameState?.whiteId === gameState?.blackId && gameState?.whiteId === clerkUserId
 
   const handleMove = async (move: { from: string; to: string; promotion?: string }) => {
-    if (!gameId || !userId || isSpectator) return;
+    if (!gameId || !clerkUserId || isSpectator) return;
     try {
-      await socketClient.makeMove(gameId as string, userId, move);
+      await socketClient.makeMove(gameId as string, clerkUserId, move);
     } catch (err) {
       console.error('Failed to make move:', err);
     }
@@ -141,8 +77,25 @@ export default function GamePage() {
     );
   }
 
+  if (searchParams.get('wait') === 'true' && gameState?.status === 'waiting') {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gray-900 text-white">
+        <h1 className="text-2xl font-bold mb-4">Waiting for Opponent</h1>
+        <div className="animate-pulse text-gray-400">
+          Share your lobby link or wait for someone to join...
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-8">
+      {isSelfPlay && (
+        <div className="bg-yellow-500/20 text-yellow-200 px-4 py-2 text-center">
+          ⚠️ You are playing against yourself in another window
+        </div>
+      )}
+
       <div className="max-w-6xl mx-auto">
         {/* Back to Lobby Button */}
         <button
@@ -175,7 +128,7 @@ export default function GamePage() {
         </div>
 
         {/* Waiting Room UI */}
-        {gameState?.status === 'waiting' && gameState.players.white === userId && (
+        {gameState?.status === 'waiting' && gameState.players.white === clerkUserId && (
           <div className="mb-8 bg-gray-800 rounded-lg p-6 max-w-2xl mx-auto">
             <h2 className="text-xl font-semibold mb-4">Waiting Room</h2>
             <p className="text-gray-300 mb-4">
@@ -234,7 +187,7 @@ export default function GamePage() {
               status: 'waiting',
               turn: 'w'
             }}
-            userId={userId!}
+            userId={clerkUserId!}
             onMove={handleMove}
             isSpectator={isSpectator}
           />

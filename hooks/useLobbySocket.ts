@@ -24,79 +24,47 @@ export function useLobbySocket() {
   const [isConnected, setIsConnected] = useState(false)
   const [isLoading, setIsLoading] = useState(true)
 
-  const fetchLobbies = useCallback(async () => {
-    try {
-      setIsLoading(true)
-      const lobbiesData = await socketClient.getLobbies()
-      setLobbies(lobbiesData)
-      setError(null)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch lobbies')
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
-
   useEffect(() => {
     if (!user?.id) return;
 
-    let isSubscribed = true;
+    const channel = socketClient.supabase
+      .channel('lobby_updates')
+      .on('postgres_changes', 
+        { event: '*', schema: 'public', table: 'lobbies' },
+        async () => {
+          // Refresh lobbies on any change
+          const updatedLobbies = await socketClient.getLobbies();
+          setLobbies(updatedLobbies);
+        }
+      )
+      .subscribe();
 
-    const connectToLobby = async () => {
-      try {
-        await socketClient.connectToLobby(user.id, {
-          onLobbyCreated: (lobby) => {
-            if (!isSubscribed) return;
-            setLobbies(prev => {
-              const prevLobbies = Array.isArray(prev) ? prev : [];
-              const exists = prevLobbies.some(l => l.id === lobby.id);
-              if (exists) return prevLobbies;
-              return [lobby, ...prevLobbies];
-            });
-          },
-          onLobbyRemoved: (lobbyId) => {
-            setLobbies(prev => Array.isArray(prev) ? prev.filter(l => l.id !== lobbyId) : []);
-          },
-          onGameCreated: (gameId) => {
-            console.log('Game created, navigating to:', gameId);
-            router.push(`/game/${gameId}`);
-          },
-          onError: (error) => {
-            setError(error.message)
-          }
-        });
-        setIsConnected(true);
-        await fetchLobbies();
-      } catch (err) {
-        if (!isSubscribed) return;
-        setError(err instanceof Error ? err.message : 'Failed to connect to lobby');
-        setIsConnected(false);
-      }
-    };
-
-    connectToLobby();
-
-    const refreshInterval = setInterval(fetchLobbies, 30000);
+    // Initial fetch
+    socketClient.getLobbies()
+      .then(setLobbies)
+      .catch(err => setError(err.message))
+      .finally(() => setIsLoading(false));
 
     return () => {
-      isSubscribed = false;
-      clearInterval(refreshInterval);
-      socketClient.disconnect();
+      channel.unsubscribe();
     };
-  }, [user?.id, fetchLobbies, router]);
+  }, [user?.id]);
 
   const createLobby = useCallback(async (data: any) => {
     if (!user?.id) {
-      setError('User not authenticated')
-      return
+      setError('User not authenticated');
+      return;
     }
 
     try {
-      await socketClient.createLobby(user.id, data)
+      await socketClient.createLobby(user.id, {
+        hostName: user.fullName || user.username,
+        ...data
+      });
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create lobby')
+      setError(err instanceof Error ? err.message : 'Failed to create lobby');
     }
-  }, [user?.id])
+  }, [user?.id, user?.fullName, user?.username]);
 
   const joinLobby = useCallback(async (lobbyId: string) => {
     if (!user?.id) {
@@ -161,7 +129,7 @@ export function useLobbySocket() {
     joinLobby,
     findMatch,
     cancelMatchmaking,
-    refresh: fetchLobbies,
+    refresh: socketClient.getLobbies,
     terminateLobby,
     isOwnLobby: useCallback((lobby: Lobby) => lobby.hostId === user?.id, [user?.id])
   }

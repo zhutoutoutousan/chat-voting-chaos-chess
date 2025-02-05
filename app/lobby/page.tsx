@@ -189,7 +189,7 @@ export default function LobbyPage() {
                         </span>
                       )}
                     </div>
-                    <p className="text-sm text-gray-400">Host: {lobby.hostName}</p>
+                    <p className="text-sm text-gray-400">Host: {lobby.hostName || 'Unknown'}</p>
                     <p className="text-xs text-gray-500">
                       {lobby.status === 'waiting' 
                         ? `Expires in ${formatTimeLeft(lobby.expiresAt)}`
@@ -215,12 +215,20 @@ export default function LobbyPage() {
                       </button>
                     )}
                     {isOwnLobby(lobby) && (
-                      <button
-                        onClick={() => terminateLobby(lobby.id)}
-                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
-                      >
-                        Terminate
-                      </button>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={() => router.push(`/game/${lobby.id}?wait=true`)}
+                          className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                        >
+                          Wait
+                        </button>
+                        <button
+                          onClick={() => terminateLobby(lobby.id)}
+                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
+                        >
+                          Terminate
+                        </button>
+                      </div>
                     )}
                   </div>
                 </div>
