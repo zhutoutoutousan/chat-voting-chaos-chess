@@ -28,7 +28,7 @@ export default function GamePage() {
 
   useEffect(() => {
     if (!gameId || !userId) return;
-
+    console.log('GamePage mounted')
     let isSubscribed = true;
     let isInitialMount = true;
 

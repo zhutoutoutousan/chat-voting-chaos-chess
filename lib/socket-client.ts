@@ -202,7 +202,7 @@ class AblyClient {
       const timeoutId = setTimeout(() => {
         cleanupFunctions.forEach(cleanup => cleanup());
         reject(new Error('Timeout joining lobby'));
-      }, 5000);
+      }, 60000);
       cleanupFunctions.push(() => clearTimeout(timeoutId));
     });
   }
@@ -260,7 +260,7 @@ class AblyClient {
         setTimeout(() => {
           cleanup();
           reject(new Error('Timeout getting active games'));
-        }, 15000);
+        }, 60000);
       });
     } catch (error) {
       console.error('Failed to get active games:', error);
@@ -306,7 +306,7 @@ class AblyClient {
         setTimeout(() => {
           cleanup();
           reject(new Error('Timeout getting game info'));
-        }, 15000);
+        }, 60000);
       });
     } catch (error) {
       console.error(`Failed to get info for game ${gameId}:`, error);
@@ -356,7 +356,7 @@ class AblyClient {
           // Clean up all subscriptions
           cleanupFunctions.forEach(cleanup => cleanup());
           reject(new Error('Timeout getting lobbies'));
-        }, 15000);
+        }, 60000);
         cleanupFunctions.push(() => clearTimeout(timeoutId));
       });
     } catch (error) {
