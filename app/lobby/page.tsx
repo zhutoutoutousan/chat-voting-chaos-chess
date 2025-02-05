@@ -15,7 +15,7 @@ export default function LobbyPage() {
   const [mode, setMode] = useState('standard')
   const [isCreatingLobby, setIsCreatingLobby] = useState(false)
   
-  const { lobbies, isLoading, error, isConnected, refresh, createLobby, joinLobby, terminateLobby, isOwnLobby } = useLobbySocket(userId!)
+  const { lobbies = [], isLoading, error, isConnected, refresh, createLobby, joinLobby, terminateLobby, isOwnLobby } = useLobbySocket()
 
   const handleCreateLobby = async () => {
     try {
@@ -53,6 +53,11 @@ export default function LobbyPage() {
       console.error('Failed to start game:', error);
     }
   };
+
+  if (!userId) {
+    router.push('/play');
+    return null;
+  }
 
   if (isLoading) {
     return (
@@ -185,9 +190,6 @@ export default function LobbyPage() {
                       )}
                     </div>
                     <p className="text-sm text-gray-400">Host: {lobby.hostName}</p>
-                    {lobby.guestName && (
-                      <p className="text-sm text-gray-400">Guest: {lobby.guestName}</p>
-                    )}
                     <p className="text-xs text-gray-500">
                       {lobby.status === 'waiting' 
                         ? `Expires in ${formatTimeLeft(lobby.expiresAt)}`
@@ -196,37 +198,15 @@ export default function LobbyPage() {
                     </p>
                   </div>
                   <div className="flex gap-2">
-                    {isOwnLobby(lobby) && (
-                      <>
-                        <button
-                          onClick={() => {
-                              terminateLobby(lobby.id);
-                          }}
-                          className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
-                        >
-                          Terminate
-                        </button>
-                        {lobby.status === 'waiting' && lobby.guestId && (
-                          <button
-                            onClick={() => handleStartGame(lobby.id)}
-                            className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
-                          >
-                            Start Game
-                          </button>
-                        )}
-                      </>
+                    {lobby.status === 'active' && lobby.gameId && (
+                      <button
+                        onClick={() => handleSpectateGame(lobby.gameId!)}
+                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                      >
+                        Spectate
+                      </button>
                     )}
-                    {
-                      lobby.status === 'waiting' && !lobby.guestId && (
-                        <button
-                          onClick={() => handleJoinLobby(lobby.id)}
-                          className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
-                        >
-                          Wait
-                        </button>
-                      )
-                    }
-                    {lobby.status === 'waiting' && !isOwnLobby(lobby) && !lobby.guestId && (
+                    {lobby.status === 'waiting' && !isOwnLobby(lobby) && (
                       <button
                         onClick={() => handleJoinLobby(lobby.id)}
                         className="px-4 py-2 bg-green-600 hover:bg-green-700 rounded"
@@ -234,12 +214,12 @@ export default function LobbyPage() {
                         Join
                       </button>
                     )}
-                    {lobby.status === 'active' && (
+                    {isOwnLobby(lobby) && (
                       <button
-                        onClick={() => handleSpectateGame(lobby.id)}
-                        className="px-4 py-2 bg-blue-600 hover:bg-blue-700 rounded"
+                        onClick={() => terminateLobby(lobby.id)}
+                        className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded"
                       >
-                        Spectate
+                        Terminate
                       </button>
                     )}
                   </div>
