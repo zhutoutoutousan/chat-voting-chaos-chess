@@ -50,24 +50,39 @@ export default function PlayPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white">
-      {/* Header with logout */}
-      {userId && (
-        <div className="absolute top-4 right-4">
-          <motion.button
-            onClick={() => signOut()}
-            className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 
-              rounded-lg transition-colors"
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-          >
-            <IconLogout size={20} />
-            Log Out
-          </motion.button>
+    <div className="min-h-screen bg-gradient-to-b from-gray-900 to-black text-white p-8">
+      <div className="max-w-4xl mx-auto text-center">
+        <h1 className="text-4xl font-bold mb-8">Start Playing</h1>
+        
+        {/* Add glitchy warning message */}
+        <div className="mb-8 relative overflow-hidden">
+          <div className="animate-glitch-1 absolute inset-0 text-red-500 opacity-80">
+            ⚠️ Under Construction: You may run into bugs jajajajaja
+          </div>
+          <div className="animate-glitch-2 absolute inset-0 text-blue-500 opacity-80">
+            ⚠️ Under Construction: You may run into bugs jajajajaja
+          </div>
+          <div className="animate-glitch-3 text-yellow-300">
+            ⚠️ Under Construction: You may run into bugs jajajajaja
+          </div>
         </div>
-      )}
 
-      <div className="container mx-auto px-4 py-20">
+        {/* Header with logout */}
+        {userId && (
+          <div className="absolute top-4 right-4">
+            <motion.button
+              onClick={() => signOut()}
+              className="flex items-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 
+                rounded-lg transition-colors"
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+            >
+              <IconLogout size={20} />
+              Log Out
+            </motion.button>
+          </div>
+        )}
+
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}

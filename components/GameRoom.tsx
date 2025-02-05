@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { useAuth } from "@clerk/nextjs";
 import ChessGame from './ChessGame';
 import { GameState } from '@/types/game';
-import { apiClient } from '@/lib/api-client';
 import { socketClient } from '@/lib/socket-client';
 
 interface GameRoomProps {
@@ -15,49 +14,33 @@ export function GameRoom({ gameId }: GameRoomProps) {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Load initial game state
-    const loadGame = async () => {
-      try {
-        const response = await apiClient.get(`/game/${gameId}`);
-        setGameState(response.data);
-      } catch (error) {
-        setError('Failed to load game');
-        console.error('Game load error:', error);
-      }
-    };
+    if (!userId || !gameId) return;
 
-    loadGame();
+    const channel = socketClient.supabase
+      .channel(`game:${gameId}`)
+      .on('broadcast', { event: 'game_update' }, (payload: any) => {
+        setGameState(payload);
+      })
+      .subscribe();
 
-    // Connect to game socket
-    const socket = socketClient.connectToGame(gameId, userId!);
-
-    socket.on('game_state', (state: GameState) => {
-      setGameState(state);
-    });
-
-    socket.on('game_error', (error: { message: string }) => {
-      setError(error.message);
-    });
+    // Initial game state fetch
+    socketClient.getGame(gameId)
+      .then(setGameState)
+      .catch(err => setError(err.message));
 
     return () => {
-      socket.disconnect();
+      channel.unsubscribe();
     };
   }, [gameId, userId]);
 
-  if (error) {
-    return <div className="text-red-500">{error}</div>;
-  }
+  const playerColor = gameState?.players.white.userId === userId ? 'white' : 'black';
 
-  if (!gameState) {
-    return <div>Loading game...</div>;
-  }
-
-  const playerColor = gameState.players.white.userId === userId ? 'white' : 'black';
+  if (error) return <div>Error: {error}</div>;
+  if (!gameState) return <div>Loading...</div>;
 
   return (
-    <div className="flex flex-col items-center">
-      <div className="mb-4">
-        <h2>Game Room {gameId}</h2>
+    <div className="game-room">
+      <div className="game-info">
         <div>Time Control: {gameState.timeControl}</div>
         <div>Mode: {gameState.mode}</div>
       </div>
@@ -65,8 +48,12 @@ export function GameRoom({ gameId }: GameRoomProps) {
       <ChessGame
         gameState={gameState}
         playerColor={playerColor}
-        onMove={(move) => {
-          socket.emit('move', { move });
+        onMove={async (move) => {
+          try {
+            await socketClient.makeMove(gameId, move);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Failed to make move');
+          }
         }}
       />
     </div>
