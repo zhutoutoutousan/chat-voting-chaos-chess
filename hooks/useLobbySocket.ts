@@ -13,6 +13,7 @@ export type Lobby = {
   status: 'waiting' | 'active' | 'finished';
   createdAt: string;
   expiresAt: string;
+  gameId?: string;
 };
 
 export function useLobbySocket() {
@@ -47,13 +48,14 @@ export function useLobbySocket() {
           onLobbyCreated: (lobby) => {
             if (!isSubscribed) return;
             setLobbies(prev => {
-              const exists = prev.some(l => l.id === lobby.id);
-              if (exists) return prev;
-              return [lobby, ...prev];
+              const prevLobbies = Array.isArray(prev) ? prev : [];
+              const exists = prevLobbies.some(l => l.id === lobby.id);
+              if (exists) return prevLobbies;
+              return [lobby, ...prevLobbies];
             });
           },
           onLobbyRemoved: (lobbyId) => {
-            setLobbies(prev => prev.filter(l => l.id !== lobbyId))
+            setLobbies(prev => Array.isArray(prev) ? prev.filter(l => l.id !== lobbyId) : []);
           },
           onGameCreated: (gameId) => {
             console.log('Game created, navigating to:', gameId);

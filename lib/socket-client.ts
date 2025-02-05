@@ -331,7 +331,7 @@ class AblyClient {
         const lobbiesSubscription = channel.subscribe('lobbies_update', (msg) => {
           // Clean up all subscriptions
           cleanupFunctions.forEach(cleanup => cleanup());
-          resolve(msg.data.lobbies);
+          resolve(msg.data.data.lobbies);
         });
         // Ably subscriptions need to be cleaned up using unsubscribe method on the channel
         cleanupFunctions.push(() => channel.unsubscribe('lobbies_update'));
