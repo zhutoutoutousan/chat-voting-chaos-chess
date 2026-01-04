@@ -317,28 +317,30 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 
 ### Vercel Build Fails
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
-  - **Cause**: Compatibility issue between pnpm 6.35.1 and Node.js versions
+  - **Cause**: Known bug in pnpm 6.x with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
   - **Solution**: 
+    - `vercel.json` now explicitly installs pnpm 8.15.0: `npm install -g pnpm@8.15.0 && pnpm install`
     - Node.js is pinned to 22.x in `package.json` engines field
-    - `vercel.json` now uses corepack to ensure pnpm 8.15.0 is used
+    - `packageManager: "pnpm@8.15.0"` is set in `package.json`
     - If issues persist, ensure Vercel Project Settings → Node.js Version is set to 22.x
 - Check root directory is set to `apps/frontend` in Dashboard
 - Verify Turborepo is working: `turbo build`
 - Check build logs for specific errors
 
 ### Railway Deployment Issues
-- **"nest: not found" error**: Railway is using npm instead of pnpm
+- **"nest: not found" error**: Railway is using npm instead of pnpm for build
+  - **Cause**: Railway's Railpack auto-detects npm workspaces and uses `npm run build --workspace=...`
   - **Solution**: 
     - `apps/backend/railpack.json` is configured to use pnpm 8.15.0 via corepack
     - Railway uses Railpack (not Nixpacks) - see [Railpack docs](https://docs.railway.com/reference/railpack)
-    - The railpack.json file should automatically configure Railway to use pnpm
-    - If Railway still uses npm, manually set the Build Command in Railway Dashboard → Settings → Deploy
-    - Use: `cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/backend build`
+    - The railpack.json build step should override npm workspace detection
+    - **If Railway still uses npm for build**, manually set the Build Command in Railway Dashboard → Settings → Deploy:
+      - Use: `cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/backend build`
+    - Ensure Root Directory is set to `apps/backend` in Railway Dashboard → Settings → Source
 - Verify `DATABASE_URL` is set correctly
 - Check build command includes `pnpm db:generate`
 - Review Railway logs for errors
 - Ensure Prisma client is generated before build
-- Ensure Root Directory is set to `apps/backend` in Railway Dashboard
 
 ## Documentation
 
