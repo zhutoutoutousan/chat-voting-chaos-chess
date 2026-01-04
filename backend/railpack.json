@@ -8,14 +8,15 @@
     "install": {
       "commands": [
         { "cmd": "npm install -g pnpm", "customName": "Install pnpm" },
-        { "cmd": "pnpm install", "customName": "Install dependencies" },
-        { "cmd": "pnpm prisma:generate", "customName": "Generate Prisma client" }
+        { "cmd": "pwd && echo '=== Files in current directory ===' && ls -la && echo '=== Looking for package.json ===' && (test -f package.json && echo '✓ package.json found' || (echo '✗ package.json NOT found' && echo 'Checking parent directories...' && ls -la .. 2>/dev/null || true))", "customName": "Debug: Check directory structure" },
+        { "cmd": "if [ -f package.json ]; then pnpm install; elif [ -f ../backend/package.json ]; then cd ../backend && pnpm install; elif [ -f ../../backend/package.json ]; then cd ../../backend && pnpm install; else echo 'ERROR: Cannot find package.json' && exit 1; fi", "customName": "Install dependencies (with fallback)" },
+        { "cmd": "if [ -f package.json ]; then pnpm prisma:generate; elif [ -f ../backend/package.json ]; then cd ../backend && pnpm prisma:generate; elif [ -f ../../backend/package.json ]; then cd ../../backend && pnpm prisma:generate; else echo 'ERROR: Cannot find package.json for prisma generate' && exit 1; fi", "customName": "Generate Prisma client (with fallback)" }
       ]
     },
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
-        { "cmd": "pnpm build", "customName": "Build backend" }
+        { "cmd": "if [ -f package.json ]; then pnpm build; elif [ -f ../backend/package.json ]; then cd ../backend && pnpm build; elif [ -f ../../backend/package.json ]; then cd ../../backend && pnpm build; else echo 'ERROR: Cannot find package.json for build' && exit 1; fi", "customName": "Build backend (with fallback)" }
       ]
     }
   },
