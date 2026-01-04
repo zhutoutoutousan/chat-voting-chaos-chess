@@ -7,22 +7,20 @@
     "packages/*"
   ],
   "scripts": {
-    "dev": "turbo run dev",
-    "build": "turbo run build",
-    "test": "turbo run test",
-    "lint": "turbo run lint",
+    "dev:frontend": "pnpm build:packages && pnpm --filter @chaos-chess/frontend dev",
+    "dev:backend": "pnpm build:packages && pnpm --filter @chaos-chess/backend dev",
+    "build:packages": "pnpm db:generate && pnpm --filter @chaos-chess/shared build",
+    "build:frontend": "pnpm build:packages && pnpm --filter @chaos-chess/frontend build",
+    "build:backend": "pnpm build:packages && pnpm --filter @chaos-chess/backend build",
     "format": "prettier --write \"**/*.{ts,tsx,json,md}\"",
     "db:generate": "pnpm --filter @chaos-chess/prisma generate",
     "db:migrate": "pnpm --filter @chaos-chess/prisma migrate dev",
     "db:migrate:deploy": "pnpm --filter @chaos-chess/prisma migrate deploy",
-    "backend:build": "pnpm --filter @chaos-chess/backend build",
-    "backend:start": "pnpm --filter @chaos-chess/backend start:prod",
     "db:reset": "cd packages/prisma && powershell -ExecutionPolicy Bypass -File reset-db.ps1",
     "db:setup": "cd packages/prisma && powershell -ExecutionPolicy Bypass -File setup-db.ps1",
     "db:studio": "pnpm --filter @chaos-chess/prisma studio"
   },
   "devDependencies": {
-    "turbo": "^1.11.2",
     "prettier": "^3.1.1",
     "eslint": "^8.56.0",
     "typescript": "^5.3.3"

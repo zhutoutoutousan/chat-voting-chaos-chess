@@ -37,9 +37,6 @@ dist/
 .DS_Store
 Thumbs.db
 
-# Turbo
-.turbo/
-
 # Prisma
 packages/prisma/migrations/
 
@@ -49,7 +46,4 @@ packages/prisma/migrations/
 # Vercel
 .vercel
 
-
 WebChaosModV-master/
-# Turborepo
-.turbo

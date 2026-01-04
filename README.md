@@ -11,7 +11,7 @@ A comprehensive chess platform with interactive chat voting chaos mode, built wi
 - **Payments**: Stripe (ready for integration)
 - **Real-time**: WebSocket (Socket.io)
 - **Chess Engine**: chess.js
-- **Monorepo**: Turborepo, pnpm workspaces
+- **Monorepo**: pnpm workspaces (frontend and backend are independent)
 
 ## Project Structure
 
@@ -85,28 +85,42 @@ chat-voting-chaos-chess/
    cd packages/prisma && pnpm seed
    ```
 
-5. **Start development servers:**
+5. **Build packages (required before running apps):**
    ```bash
-   # Start all apps
-   pnpm dev
+   # Build packages (Prisma client + shared package)
+   pnpm build:packages
+   ```
 
-   # Or start individually
-   pnpm --filter @chaos-chess/frontend dev
-   pnpm --filter @chaos-chess/backend dev
+6. **Start development servers:**
+   ```bash
+   # Start frontend (automatically builds packages first)
+   pnpm dev:frontend
+
+   # Start backend (automatically builds packages first)
+   pnpm dev:backend
    ```
 
 ## Available Scripts
 
-- `pnpm dev` - Start all development servers
-- `pnpm build` - Build all applications
-- `pnpm test` - Run tests
-- `pnpm lint` - Lint all code
+### Development
+- `pnpm dev:frontend` - Start frontend dev server (builds packages first)
+- `pnpm dev:backend` - Start backend dev server (builds packages first)
+- `pnpm build:packages` - Build shared packages (Prisma client + shared TypeScript)
+
+### Building
+- `pnpm build:frontend` - Build frontend for production (builds packages first)
+- `pnpm build:backend` - Build backend for production (builds packages first)
+
+### Database
 - `pnpm db:generate` - Generate Prisma client
 - `pnpm db:migrate` - Run database migrations (dev)
 - `pnpm db:migrate:deploy` - Deploy migrations (production)
 - `pnpm db:reset` - Reset database (WARNING: deletes all data)
 - `pnpm db:setup` - First-time database setup
 - `pnpm db:studio` - Open Prisma Studio
+
+### Utilities
+- `pnpm format` - Format code with Prettier
 
 ## Database Management
 
@@ -137,8 +151,9 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 1. **Go to Vercel Dashboard** → Add New Project
 2. **Import your GitHub repository**
 3. **Configure in Dashboard:**
-   - **Root Directory**: `apps/frontend` (set in Dashboard, not vercel.json)
-   - Framework will auto-detect Next.js
+   - **Root Directory**: Repository root (leave as default)
+   - Framework will auto-detect Next.js from `apps/frontend`
+   - **Build Command**: `cd apps/frontend && pnpm build` (or use the one in `vercel.json`)
 4. **Set Environment Variables:**
    ```
    NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api/v1
@@ -150,7 +165,7 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
    ```
 5. **Deploy!**
 
-**Note**: The `vercel.json` uses `turbo build` - Vercel automatically filters to the frontend based on root directory.
+**Note**: The `vercel.json` automatically builds the frontend. The build command navigates to `apps/frontend` and runs `pnpm build`.
 
 ### Backend Deployment (Railway)
 
@@ -188,19 +203,19 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 
 ## Architecture
 
-### Monorepo with Turborepo
+### Monorepo Structure
 
-This project uses Turborepo for build orchestration:
-- **Automatic dependency building**: Shared packages build first
-- **Caching**: Build outputs cached between runs
-- **Parallel execution**: Builds run in parallel when possible
-
-### Vercel + Turborepo
-
-According to the [Vercel Turborepo documentation](https://vercel.com/docs/monorepos/turborepo):
-- Vercel has Turborepo installed globally
-- Automatically filters builds based on root directory
-- No need to install turbo in the project
+This project uses a pnpm workspace monorepo:
+- **Independent builds**: Frontend and backend build independently
+- **Shared packages**: Common code in `packages/shared` and `packages/prisma`
+  - `packages/shared`: TypeScript types and utilities (needs to be built with `tsc`)
+  - `packages/prisma`: Prisma schema and client (needs `prisma generate`)
+- **Build order**: Packages must be built before apps:
+  1. `pnpm db:generate` - Generate Prisma client
+  2. `pnpm --filter @chaos-chess/shared build` - Build shared package
+  3. Build frontend or backend
+- **Workspace protocol**: Packages reference each other using `workspace:*`
+- **Single repository**: Keeps everything together for easier AI IDE assistance
 
 ### Backend Limitations on Vercel
 
@@ -323,8 +338,8 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
     - Node.js is pinned to 22.x in `package.json` engines field
     - `packageManager: "pnpm@8.15.0"` is set in `package.json`
     - If issues persist, ensure Vercel Project Settings → Node.js Version is set to 22.x
-- Check root directory is set to `apps/frontend` in Dashboard
-- Verify Turborepo is working: `turbo build`
+- Check root directory is set to repository root in Dashboard
+- Verify frontend builds: `cd apps/frontend && pnpm build`
 - Check build logs for specific errors
 
 ### Railway Deployment Issues
