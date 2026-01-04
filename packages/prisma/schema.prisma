@@ -1,0 +1,728 @@
+// Prisma Schema for Chat Voting Chaos Chess
+// Database: Supabase PostgreSQL
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Enums
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
+  DRAW_OFFERED
+}
+
+enum GameResult {
+  WHITE_WINS
+  BLACK_WINS
+  DRAW
+  WHITE_RESIGNED
+  BLACK_RESIGNED
+  WHITE_TIMEOUT
+  BLACK_TIMEOUT
+  DRAW_AGREED
+  STALEMATE
+  INSUFFICIENT_MATERIAL
+  THREEFOLD_REPETITION
+  FIFTY_MOVE_RULE
+}
+
+enum RatingType {
+  OVERALL
+  BLITZ
+  RAPID
+  CLASSICAL
+  CORRESPONDENCE
+  PUZZLE
+  CHAOS
+}
+
+enum MessageType {
+  TEXT
+  MOVE_SUGGESTION
+  SYSTEM
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  MASTER
+}
+
+enum PuzzleTheme {
+  TACTICS
+  ENDGAME
+  OPENING
+  STRATEGY
+  CHECKMATE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  DIAMOND
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+
+enum ChatRoomType {
+  GLOBAL
+  GAME
+  CLUB
+  PRIVATE
+  GROUP
+}
+
+enum ChatRoomRole {
+  MEMBER
+  MODERATOR
+  ADMIN
+  OWNER
+}
+
+enum TransactionType {
+  EARN
+  SPEND
+  GIFT_SENT
+  GIFT_RECEIVED
+  REFUND
+  PURCHASE
+}
+
+enum CurrencyType {
+  COINS
+  GEMS
+  POINTS
+}
+
+enum ItemCategory {
+  THEME
+  AVATAR
+  EMOTE
+  COURSE
+  ANALYSIS
+  TOURNAMENT
+  OTHER
+}
+
+enum ItemType {
+  CONSUMABLE
+  PERMANENT
+  SUBSCRIPTION
+}
+
+// User Model
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  username      String    @unique
+  name          String?
+  avatar        String?
+  bio           String?
+  
+  // Authentication
+  passwordHash  String?
+  oauthAccounts OAuthAccount[]
+  
+  // Relationships
+  gamesAsWhite  Game[]    @relation("WhitePlayer")
+  gamesAsBlack  Game[]    @relation("BlackPlayer")
+  ratings       Rating[]
+  academyProgress AcademyProgress[]
+  votes         Vote[]
+  chatMessages  ChatMessage[]
+  subscriptions Subscription[]
+  friends       Friendship[] @relation("User")
+  friendOf      Friendship[] @relation("Friend")
+  notifications Notification[]
+  posts         Post[]
+  comments      Comment[]
+  clubMembers   ClubMember[]
+  chatRoomMembers ChatRoomMember[]
+  ownedChatRooms ChatRoom[] @relation("OwnedRooms")
+  chatRoomMessages ChatRoomMessage[]
+  currency      UserCurrency?
+  transactions  CurrencyTransaction[]
+  marketplacePurchases MarketplaceSale[]
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  isActive      Boolean   @default(true)
+  isPremium     Boolean   @default(false)
+  isAdmin       Boolean   @default(false)
+  
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
+}
+
+// OAuth Account
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+
+// Game
+model Game {
+  id              String      @id @default(cuid())
+  whitePlayerId   String
+  blackPlayerId   String
+  whitePlayer     User        @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer     User        @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+  
+  // Game State
+  status          GameStatus  @default(WAITING)
+  result          GameResult?
+  currentFen      String      @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  moves           Move[]
+  pgn             String?
+  
+  // Game Settings
+  timeControl     String
+  isRated         Boolean     @default(true)
+  isChaosMode     Boolean     @default(false)
+  isPublic        Boolean     @default(true)
+  
+  // Timing
+  whiteTimeLeft   Int?
+  blackTimeLeft   Int?
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  
+  // Relationships
+  votes           Vote[]
+  chatMessages    ChatMessage[]
+  spectators      GameSpectator[]
+  
+  // Metadata
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([whitePlayerId])
+  @@index([blackPlayerId])
+  @@index([status])
+  @@index([isRated])
+  @@index([createdAt])
+}
+
+// Move
+model Move {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  
+  moveNumber  Int
+  move        String
+  fen         String
+  san         String?
+  isWhiteMove Boolean
+  
+  // Analysis
+  evaluation  Float?
+  bestMove    String?
+  
+  // Timing
+  timestamp   DateTime @default(now())
+  timeSpent   Int?
+  
+  @@index([gameId])
+  @@index([gameId, moveNumber])
+}
+
+// Rating
+model Rating {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  ratingType      RatingType
+  rating          Int         @default(1200)
+  gamesPlayed     Int         @default(0)
+  wins            Int         @default(0)
+  losses          Int         @default(0)
+  draws           Int         @default(0)
+  
+  // Rating History
+  peakRating      Int?
+  peakRatingDate  DateTime?
+  
+  // Metadata
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([userId, ratingType])
+  @@index([userId])
+  @@index([ratingType, rating])
+}
+
+// Vote (Chaos Mode)
+model Vote {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  move        String
+  voteWeight  Int      @default(1)
+  
+  // Voting Window
+  votingRound Int
+  timestamp   DateTime @default(now())
+  
+  @@index([gameId, votingRound])
+  @@index([userId])
+}
+
+// Chat Message
+model ChatMessage {
+  id          String   @id @default(cuid())
+  gameId      String?
+  game        Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  message     String
+  messageType MessageType @default(TEXT)
+  
+  // Moderation
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  
+  timestamp   DateTime @default(now())
+  
+  @@index([gameId])
+  @@index([userId])
+  @@index([timestamp])
+}
+
+// Subscription
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripeCustomerId  String   @unique
+  stripeSubscriptionId String @unique
+  stripePriceId     String
+  
+  status            SubscriptionStatus
+  tier              SubscriptionTier
+  
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+
+// Academy Course
+model AcademyCourse {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  slug        String   @unique
+  difficulty  DifficultyLevel
+  order       Int
+  
+  // Content
+  lessons     AcademyLesson[]
+  progress    AcademyProgress[]
+  
+  // Metadata
+  isPublished Boolean  @default(false)
+  isPremium   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([difficulty])
+}
+
+// Academy Lesson
+model AcademyLesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     Json
+  order       Int
+  
+  // Metadata
+  duration    Int?
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([courseId])
+}
+
+// Academy Progress
+model AcademyProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  completedLessons String[]
+  progressPercent  Float     @default(0)
+  completedAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+
+// Puzzle
+model Puzzle {
+  id          String   @id @default(cuid())
+  fen         String
+  solution    String[]
+  difficulty  DifficultyLevel
+  theme       PuzzleTheme
+  
+  // Statistics
+  attempts    Int      @default(0)
+  solves      Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([difficulty])
+  @@index([theme])
+}
+
+// Friendship
+model Friendship {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("User", fields: [userId], references: [id], onDelete: Cascade)
+  friendId    String
+  friend      User     @relation("Friend", fields: [friendId], references: [id], onDelete: Cascade)
+  
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+}
+
+// Post
+model Post {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String
+  gameId      String?
+  
+  likes       Int      @default(0)
+  comments    Comment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+
+// Comment
+model Comment {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  postId      String
+  post        Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  
+  content     String
+  likes       Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([postId])
+  @@index([userId])
+}
+
+// Club Member
+model ClubMember {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  clubId      String
+  
+  role        String   @default("MEMBER")
+  joinedAt    DateTime @default(now())
+  
+  @@unique([userId, clubId])
+  @@index([userId])
+}
+
+// Game Spectator
+model GameSpectator {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  joinedAt    DateTime @default(now())
+  
+  @@unique([gameId, userId])
+  @@index([userId])
+}
+
+// Notification
+model Notification {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  type        String
+  title       String
+  message     String
+  link        String?
+  
+  isRead      Boolean  @default(false)
+  readAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, isRead])
+}
+
+// Chat Room
+model ChatRoom {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  type            ChatRoomType
+  isPublic        Boolean  @default(true)
+  password        String?
+  maxMembers      Int?
+  
+  // Ownership
+  ownerId         String?
+  owner           User?    @relation("OwnedRooms", fields: [ownerId], references: [id])
+  
+  // Relationships
+  members         ChatRoomMember[]
+  messages        ChatRoomMessage[]
+  moderators      ChatRoomModerator[]
+  
+  // Settings
+  settings        Json?
+  isArchived      Boolean  @default(false)
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([type])
+  @@index([isPublic])
+}
+
+// Chat Room Member
+model ChatRoomMember {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  role        ChatRoomRole @default(MEMBER)
+  joinedAt    DateTime @default(now())
+  lastReadAt  DateTime @default(now())
+  
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+// Chat Room Message
+model ChatRoomMessage {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  message     String
+  messageType MessageType @default(TEXT)
+  
+  // Rich content
+  attachments Json?
+  
+  // Moderation
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  deletedBy   String?
+  
+  timestamp   DateTime @default(now())
+  editedAt    DateTime?
+  
+  @@index([roomId, timestamp])
+  @@index([userId])
+}
+
+// Chat Room Moderator
+model ChatRoomModerator {
+  id          String   @id @default(cuid())
+  roomId      String
+  room        ChatRoom @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  permissions Json?
+  assignedAt  DateTime @default(now())
+  
+  @@unique([roomId, userId])
+  @@index([userId])
+}
+
+// User Currency
+model UserCurrency {
+  id          String   @id @default(cuid())
+  userId      String   @unique
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  coins       Int      @default(0)
+  gems        Int      @default(0)
+  points      Int      @default(0)
+  
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+}
+
+// Currency Transaction
+model CurrencyTransaction {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  type        TransactionType
+  currencyType CurrencyType
+  amount      Int
+  balance     Int
+  
+  action      String?
+  metadata    Json?
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([userId, createdAt])
+  @@index([type])
+}
+
+// Marketplace Item
+model MarketplaceItem {
+  id              String   @id @default(cuid())
+  name            String
+  description     String?
+  category        ItemCategory
+  type            ItemType
+  
+  // Pricing
+  priceCoins      Int?
+  priceGems       Int?
+  priceUSD        Decimal?
+  
+  // Content
+  content         Json?
+  previewImage    String?
+  
+  // Availability
+  isAvailable     Boolean  @default(true)
+  isLimited       Boolean  @default(false)
+  stockCount      Int?
+  expiresAt       DateTime?
+  
+  // Creator
+  creatorId       String?
+  
+  // Sales
+  sales           MarketplaceSale[]
+  reviews         MarketplaceReview[]
+  
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  
+  @@index([category])
+  @@index([isAvailable])
+}
+
+// Marketplace Sale
+model MarketplaceSale {
+  id          String   @id @default(cuid())
+  itemId      String
+  item        MarketplaceItem @relation(fields: [itemId], references: [id])
+  buyerId     String
+  buyer       User     @relation(fields: [buyerId], references: [id])
+  
+  paymentType String
+  amount      Decimal
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([buyerId])
+  @@index([itemId])
+}
+
+// Marketplace Review
+model MarketplaceReview {
+  id          String   @id @default(cuid())
+  itemId      String
+  item        MarketplaceItem @relation(fields: [itemId], references: [id], onDelete: Cascade)
+  userId      String
+  
+  rating      Int
+  comment     String?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([itemId, userId])
+  @@index([itemId])
+  @@index([userId])
+}

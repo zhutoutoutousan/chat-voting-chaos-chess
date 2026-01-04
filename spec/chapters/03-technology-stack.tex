@@ -1,0 +1,277 @@
+\chapter{Technology Stack}
+
+\section{Overview}
+
+The platform is built using a modern, production-ready technology stack optimized for performance, developer experience, and scalability.
+
+\section{Frontend Technologies}
+
+\subsection{Next.js}
+
+\begin{itemize}
+    \item \textbf{Version}: Latest (14.x or newer)
+    \item \textbf{Purpose}: React framework for production
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item App Router (Next.js 13+)
+        \item Server Components
+        \item Server Actions
+        \item API Routes
+        \item Image Optimization
+        \item Automatic Code Splitting
+        \item Static Site Generation (SSG)
+        \item Incremental Static Regeneration (ISR)
+    \end{itemize}
+    \item \textbf{Deployment}: Vercel (optimized integration)
+\end{itemize}
+
+\subsection{React}
+
+\begin{itemize}
+    \item \textbf{Version}: 18.x (latest)
+    \item \textbf{Purpose}: UI library
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item Hooks (useState, useEffect, useContext, etc.)
+        \item Server Components
+        \item Concurrent Features
+    \end{itemize}
+\end{itemize}
+
+\subsection{TypeScript}
+
+\begin{itemize}
+    \item \textbf{Version}: 5.x (latest)
+    \item \textbf{Purpose}: Type-safe JavaScript
+    \item \textbf{Benefits}:
+    \begin{itemize}
+        \item Type safety across frontend and backend
+        \item Better IDE support
+        \item Reduced runtime errors
+    \end{itemize}
+\end{itemize}
+
+\subsection{UI Libraries}
+
+\begin{itemize}
+    \item \textbf{Tailwind CSS}: Utility-first CSS framework
+    \item \textbf{shadcn/ui}: High-quality component library
+    \item \textbf{React Hook Form}: Form management
+    \item \textbf{Zod}: Schema validation
+\end{itemize}
+
+\section{Backend Technologies}
+
+\subsection{Nest.js}
+
+\begin{itemize}
+    \item \textbf{Version}: Latest (10.x or newer)
+    \item \textbf{Purpose}: Progressive Node.js framework
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item Modular architecture
+        \item Dependency injection
+        \item Decorators and metadata
+        \item Guards and interceptors
+        \item WebSocket gateway
+        \item Validation pipes
+        \item Exception filters
+    \end{itemize}
+\end{itemize}
+
+\subsection{Node.js}
+
+\begin{itemize}
+    \item \textbf{Version}: 20.x LTS or newer
+    \item \textbf{Purpose}: JavaScript runtime
+    \item \textbf{Features}: ES modules, async/await, modern APIs
+\end{itemize}
+
+\section{Database \& ORM}
+
+\subsection{PostgreSQL}
+
+\begin{itemize}
+    \item \textbf{Version}: 15.x or newer
+    \item \textbf{Purpose}: Primary relational database
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item ACID transactions
+        \item JSON/JSONB support
+        \item Full-text search
+        \item Advanced indexing
+    \end{itemize}
+    \item \textbf{Provider Options}:
+    \begin{itemize}
+        \item Vercel Postgres
+        \item Supabase
+        \item Neon
+        \item Railway
+    \end{itemize}
+\end{itemize}
+
+\subsection{Prisma}
+
+\begin{itemize}
+    \item \textbf{Version}: Latest (5.x or newer)
+    \item \textbf{Purpose}: Next-generation ORM
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item Type-safe database client
+        \item Migration system
+        \item Prisma Studio
+        \item Connection pooling
+        \item Query optimization
+    \end{itemize}
+\end{itemize}
+
+\section{Authentication}
+
+\subsection{OAuth 2.0 Providers}
+
+The platform supports multiple OAuth providers:
+
+\begin{itemize}
+    \item \textbf{Google OAuth}: Primary provider
+    \item \textbf{GitHub OAuth}: Developer-friendly option
+    \item \textbf{Discord OAuth}: Gaming community integration
+    \item \textbf{Email/Password}: Traditional authentication (optional)
+\end{itemize}
+
+\subsection{Implementation}
+
+\begin{itemize}
+    \item \textbf{NextAuth.js} (Next.js): Authentication library for Next.js
+    \item \textbf{Passport.js} (Nest.js): Authentication middleware for Nest.js
+    \item \textbf{JWT}: Token-based authentication
+    \item \textbf{Session Management}: Secure session handling
+\end{itemize}
+
+\section{Payment Processing}
+
+\subsection{Stripe}
+
+\begin{itemize}
+    \item \textbf{Version}: Latest API version
+    \item \textbf{Purpose}: Payment processing and subscription management
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item Payment Intents API
+        \item Subscriptions API
+        \item Customer Portal
+        \item Webhooks for event handling
+        \item Stripe Checkout
+        \item Price management
+    \end{itemize}
+    \item \textbf{Integration Points}:
+    \begin{itemize}
+        \item Frontend: Stripe.js and React Stripe.js
+        \item Backend: Stripe Node.js SDK
+        \item Webhooks: Secure event processing
+    \end{itemize}
+\end{itemize}
+
+\section{Real-time Communication}
+
+\subsection{WebSocket}
+
+\begin{itemize}
+    \item \textbf{Implementation}: Socket.io or native WebSocket
+    \item \textbf{Purpose}: Real-time bidirectional communication
+    \item \textbf{Use Cases}:
+    \begin{itemize}
+        \item Live game moves
+        \item Chat messages
+        \item Voting updates
+        \item Online presence
+        \item Notifications
+    \end{itemize}
+    \item \textbf{Deployment}: Vercel Serverless Functions with WebSocket support
+\end{itemize}
+
+\subsection{Alternative Options}
+
+\begin{itemize}
+    \item \textbf{Server-Sent Events (SSE)}: For one-way real-time updates
+    \item \textbf{Pusher}: Managed WebSocket service (alternative)
+    \item \textbf{Ably}: Real-time messaging platform (alternative)
+\end{itemize}
+
+\section{Development Tools}
+
+\subsection{Monorepo Management}
+
+\begin{itemize}
+    \item \textbf{Turborepo} or \textbf{Nx}: Build system and task runner
+    \item \textbf{pnpm} or \textbf{npm workspaces}: Package management
+\end{itemize}
+
+\subsection{Code Quality}
+
+\begin{itemize}
+    \item \textbf{ESLint}: Code linting
+    \item \textbf{Prettier}: Code formatting
+    \item \textbf{Husky}: Git hooks
+    \item \textbf{lint-staged}: Pre-commit linting
+\end{itemize}
+
+\subsection{Testing}
+
+\begin{itemize}
+    \item \textbf{Vitest}: Unit and integration testing
+    \item \textbf{Playwright}: End-to-end testing
+    \item \textbf{React Testing Library}: Component testing
+\end{itemize}
+
+\section{Deployment \& Infrastructure}
+
+\subsection{Vercel}
+
+\begin{itemize}
+    \item \textbf{Purpose}: Hosting and deployment platform
+    \item \textbf{Features Used}:
+    \begin{itemize}
+        \item Automatic deployments
+        \item Serverless functions
+        \item Edge functions
+        \item Vercel Postgres (optional)
+        \item Analytics
+        \item Preview deployments
+    \end{itemize}
+\end{itemize}
+
+\subsection{CI/CD}
+
+\begin{itemize}
+    \item \textbf{GitHub Actions}: Automated testing and deployment
+    \item \textbf{Vercel CLI}: Local development and deployment
+\end{itemize}
+
+\section{Monitoring \& Analytics}
+
+\begin{itemize}
+    \item \textbf{Vercel Analytics}: Performance monitoring
+    \item \textbf{Sentry}: Error tracking (optional)
+    \item \textbf{LogRocket}: Session replay (optional)
+\end{itemize}
+
+\section{Version Compatibility Matrix}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{ll}
+        \toprule
+        Technology & Minimum Version \\
+        \midrule
+        Node.js & 20.x LTS \\
+        Next.js & 14.x \\
+        Nest.js & 10.x \\
+        React & 18.x \\
+        TypeScript & 5.x \\
+        Prisma & 5.x \\
+        PostgreSQL & 15.x \\
+        \bottomrule
+    \end{tabular}
+    \caption{Technology Version Requirements}
+    \label{tab:versions}
+\end{table}

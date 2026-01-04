@@ -1,0 +1,501 @@
+\chapter{Authentication \& Authorization}
+
+\section{Overview}
+
+The platform implements a comprehensive authentication and authorization system using OAuth 2.0 providers and JWT tokens, with support for traditional email/password authentication as an alternative.
+
+\section{Authentication Flow}
+
+\subsection{OAuth 2.0 Flow}
+
+The platform supports multiple OAuth providers:
+
+\begin{enumerate}
+    \item User clicks "Sign in with Google/GitHub/Discord"
+    \item Redirect to OAuth provider authorization page
+    \item User authorizes the application
+    \item OAuth provider redirects back with authorization code
+    \item Backend exchanges code for access token
+    \item Backend retrieves user information
+    \item Create or update user account
+    \item Generate JWT tokens
+    \item Return tokens to frontend
+\end{enumerate}
+
+\subsection{Email/Password Flow}
+
+\begin{enumerate}
+    \item User submits email and password
+    \item Backend validates credentials
+    \item Hash password comparison
+    \item Generate JWT tokens
+    \item Return tokens to frontend
+\end{enumerate}
+
+\section{NextAuth.js Integration (Frontend)}
+
+\subsection{Configuration}
+
+\begin{lstlisting}[language=typescript]
+// app/api/auth/[...nextauth]/route.ts
+import NextAuth from 'next-auth';
+import GoogleProvider from 'next-auth/providers/google';
+import GitHubProvider from 'next-auth/providers/github';
+import DiscordProvider from 'next-auth/providers/discord';
+import CredentialsProvider from 'next-auth/providers/credentials';
+
+export const authOptions = {
+  providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_CLIENT_ID!,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
+    }),
+    GitHubProvider({
+      clientId: process.env.GITHUB_CLIENT_ID!,
+      clientSecret: process.env.GITHUB_CLIENT_SECRET!,
+    }),
+    DiscordProvider({
+      clientId: process.env.DISCORD_CLIENT_ID!,
+      clientSecret: process.env.DISCORD_CLIENT_SECRET!,
+    }),
+    CredentialsProvider({
+      name: 'Credentials',
+      credentials: {
+        email: { label: 'Email', type: 'email' },
+        password: { label: 'Password', type: 'password' },
+      },
+      async authorize(credentials) {
+        // Validate credentials with backend API
+        const response = await fetch(`${API_URL}/auth/login`, {
+          method: 'POST',
+          body: JSON.stringify(credentials),
+        });
+        
+        if (response.ok) {
+          return await response.json();
+        }
+        return null;
+      },
+    }),
+  ],
+  callbacks: {
+    async signIn({ user, account, profile }) {
+      // Sync user with backend
+      await syncUserWithBackend(user, account);
+      return true;
+    },
+    async jwt({ token, user, account }) {
+      if (user) {
+        token.id = user.id;
+        token.accessToken = user.accessToken;
+      }
+      return token;
+    },
+    async session({ session, token }) {
+      session.user.id = token.id;
+      session.accessToken = token.accessToken;
+      return session;
+    },
+  },
+  pages: {
+    signIn: '/login',
+    error: '/auth/error',
+  },
+};
+
+export default NextAuth(authOptions);
+\end{lstlisting}
+
+\section{Nest.js Authentication (Backend)}
+
+\subsection{Passport.js Integration}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/auth/auth.module.ts
+import { Module } from '@nestjs/common';
+import { JwtModule } from '@nestjs/jwt';
+import { PassportModule } from '@nestjs/passport';
+import { JwtStrategy } from './strategies/jwt.strategy';
+import { GoogleStrategy } from './strategies/google.strategy';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+
+@Module({
+  imports: [
+    PassportModule,
+    JwtModule.register({
+      secret: process.env.JWT_SECRET,
+      signOptions: { expiresIn: '1h' },
+    }),
+  ],
+  providers: [AuthService, JwtStrategy, GoogleStrategy],
+  controllers: [AuthController],
+})
+export class AuthModule {}
+\end{lstlisting}
+
+\subsection{JWT Strategy}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/auth/strategies/jwt.strategy.ts
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { ExtractJwt, Strategy } from 'passport-jwt';
+
+@Injectable()
+export class JwtStrategy extends PassportStrategy(Strategy) {
+  constructor() {
+    super({
+      jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
+      ignoreExpiration: false,
+      secretOrKey: process.env.JWT_SECRET,
+    });
+  }
+  
+  async validate(payload: any) {
+    return {
+      userId: payload.sub,
+      email: payload.email,
+      username: payload.username,
+    };
+  }
+}
+\end{lstlisting}
+
+\subsection{Google OAuth Strategy}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/auth/strategies/google.strategy.ts
+import { Injectable } from '@nestjs/common';
+import { PassportStrategy } from '@nestjs/passport';
+import { Strategy, VerifyCallback } from 'passport-google-oauth20';
+
+@Injectable()
+export class GoogleStrategy extends PassportStrategy(Strategy, 'google') {
+  constructor() {
+    super({
+      clientID: process.env.GOOGLE_CLIENT_ID,
+      clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      callbackURL: '/api/v1/auth/google/callback',
+      scope: ['email', 'profile'],
+    });
+  }
+  
+  async validate(
+    accessToken: string,
+    refreshToken: string,
+    profile: any,
+    done: VerifyCallback,
+  ) {
+    const { id, emails, displayName } = profile;
+    const user = {
+      providerId: id,
+      email: emails[0].value,
+      name: displayName,
+      accessToken,
+    };
+    done(null, user);
+  }
+}
+\end{lstlisting}
+
+\section{Authorization}
+
+\subsection{Role-Based Access Control (RBAC)}
+
+User roles:
+
+\begin{itemize}
+    \item \textbf{USER}: Standard user
+    \item \textbf{PREMIUM}: Premium subscriber
+    \item \textbf{ADMIN}: Administrator
+    \item \textbf{MODERATOR}: Content moderator
+\end{itemize}
+
+\subsection{Guards}
+
+Nest.js guards for route protection:
+
+\begin{lstlisting}[language=typescript]
+// src/common/guards/jwt-auth.guard.ts
+import { Injectable, ExecutionContext } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
+
+@Injectable()
+export class JwtAuthGuard extends AuthGuard('jwt') {}
+
+// src/common/guards/roles.guard.ts
+import { Injectable, CanActivate, ExecutionContext } from '@nestjs/common';
+import { Reflector } from '@nestjs/core';
+import { ROLES_KEY } from '../decorators/roles.decorator';
+
+@Injectable()
+export class RolesGuard implements CanActivate {
+  constructor(private reflector: Reflector) {}
+  
+  canActivate(context: ExecutionContext): boolean {
+    const requiredRoles = this.reflector.getAllAndOverride<string[]>(ROLES_KEY, [
+      context.getHandler(),
+      context.getClass(),
+    ]);
+    
+    if (!requiredRoles) {
+      return true;
+    }
+    
+    const { user } = context.switchToHttp().getRequest();
+    return requiredRoles.some((role) => user.roles?.includes(role));
+  }
+}
+\end{lstlisting}
+
+\subsection{Role Decorator}
+
+\begin{lstlisting}[language=typescript]
+// src/common/decorators/roles.decorator.ts
+import { SetMetadata } from '@nestjs/common';
+
+export const ROLES_KEY = 'roles';
+export const Roles = (...roles: string[]) => SetMetadata(ROLES_KEY, roles);
+
+// Usage
+@Controller('admin')
+@UseGuards(JwtAuthGuard, RolesGuard)
+export class AdminController {
+  @Get('users')
+  @Roles('ADMIN')
+  getUsers() {
+    // Only admins can access
+  }
+}
+\end{lstlisting}
+
+\section{Token Management}
+
+\subsection{JWT Token Structure}
+
+\begin{lstlisting}[language=json]
+{
+  "sub": "user-id",
+  "email": "user@example.com",
+  "username": "chessplayer",
+  "roles": ["USER"],
+  "iat": 1234567890,
+  "exp": 1234571490
+}
+\end{lstlisting}
+
+\subsection{Token Refresh}
+
+\begin{itemize}
+    \item \textbf{Access Token}: Short-lived (1 hour)
+    \item \textbf{Refresh Token}: Long-lived (7 days)
+    \item Automatic refresh on token expiration
+    \item Secure token storage (httpOnly cookies or secure storage)
+\end{itemize}
+
+\subsection{Token Storage}
+
+Frontend token storage options:
+
+\begin{itemize}
+    \item \textbf{HttpOnly Cookies}: Most secure (recommended)
+    \item \textbf{Secure Storage}: localStorage with encryption
+    \item \textbf{Memory Storage}: Session-only storage
+\end{itemize}
+
+\section{Session Management}
+
+\subsection{Session Configuration}
+
+\begin{lstlisting}[language=typescript]
+// NextAuth session configuration
+export const authOptions = {
+  session: {
+    strategy: 'jwt',
+    maxAge: 7 * 24 * 60 * 60, // 7 days
+  },
+  cookies: {
+    sessionToken: {
+      name: 'next-auth.session-token',
+      options: {
+        httpOnly: true,
+        sameSite: 'lax',
+        path: '/',
+        secure: process.env.NODE_ENV === 'production',
+      },
+    },
+  },
+};
+\end{lstlisting}
+
+\section{Password Security}
+
+\subsection{Password Hashing}
+
+Using bcrypt for password hashing:
+
+\begin{lstlisting}[language=typescript]
+import * as bcrypt from 'bcrypt';
+
+export class AuthService {
+  async hashPassword(password: string): Promise<string> {
+    const saltRounds = 12;
+    return bcrypt.hash(password, saltRounds);
+  }
+  
+  async validatePassword(
+    password: string,
+    hash: string,
+  ): Promise<boolean> {
+    return bcrypt.compare(password, hash);
+  }
+}
+\end{lstlisting}
+
+\subsection{Password Requirements}
+
+\begin{itemize}
+    \item Minimum 8 characters
+    \item At least one uppercase letter
+    \item At least one lowercase letter
+    \item At least one number
+    \item At least one special character
+\end{itemize}
+
+\section{Email Verification}
+
+\subsection{Verification Flow}
+
+\begin{enumerate}
+    \item User registers with email
+    \item System sends verification email
+    \item User clicks verification link
+    \item Backend verifies token
+    \item Account activated
+\end{enumerate}
+
+\subsection{Verification Token}
+
+\begin{lstlisting}[language=typescript]
+// Generate verification token
+const token = crypto.randomBytes(32).toString('hex');
+const expiresAt = new Date(Date.now() + 24 * 60 * 60 * 1000); // 24 hours
+
+// Store in database
+await prisma.user.update({
+  where: { id: userId },
+  data: {
+    emailVerificationToken: token,
+    emailVerificationExpires: expiresAt,
+  },
+});
+
+// Send email with verification link
+await sendVerificationEmail(user.email, token);
+\end{lstlisting}
+
+\section{Security Best Practices}
+
+\subsection{HTTPS Only}
+
+\begin{itemize}
+    \item All authentication endpoints require HTTPS
+    \item Secure cookies only
+    \item HSTS headers
+\end{itemize}
+
+\subsection{CSRF Protection}
+
+\begin{itemize}
+    \item CSRF tokens for state-changing operations
+    \item SameSite cookie attribute
+    \item Origin validation
+\end{itemize}
+
+\subsection{Rate Limiting}
+
+\begin{itemize}
+    \item Login attempts: 5 per 15 minutes per IP
+    \item Registration: 3 per hour per IP
+    \item Password reset: 3 per hour per email
+\end{itemize}
+
+\subsection{Account Security}
+
+\begin{itemize}
+    \item Account lockout after failed attempts
+    \item Suspicious activity detection
+    \item Email notifications for security events
+    \item Two-factor authentication (future enhancement)
+\end{itemize}
+
+\section{Social Login Integration}
+
+\subsection{Provider Configuration}
+
+Each OAuth provider requires:
+
+\begin{itemize}
+    \item Client ID and Secret
+    \item Redirect URI configuration
+    \item Scope permissions
+    \item User information mapping
+\end{itemize}
+
+\subsection{User Synchronization}
+
+\begin{lstlisting}[language=typescript]
+async function syncUserWithBackend(
+  user: any,
+  account: any,
+) {
+  // Check if user exists
+  let dbUser = await prisma.user.findUnique({
+    where: { email: user.email },
+  });
+  
+  if (!dbUser) {
+    // Create new user
+    dbUser = await prisma.user.create({
+      data: {
+        email: user.email,
+        username: generateUsername(user.name),
+        name: user.name,
+        avatar: user.image,
+        oauthAccounts: {
+          create: {
+            provider: account.provider,
+            providerAccountId: account.providerAccountId,
+            accessToken: account.access_token,
+            refreshToken: account.refresh_token,
+          },
+        },
+      },
+    });
+  } else {
+    // Update OAuth account
+    await prisma.oAuthAccount.upsert({
+      where: {
+        provider_providerAccountId: {
+          provider: account.provider,
+          providerAccountId: account.providerAccountId,
+        },
+      },
+      update: {
+        accessToken: account.access_token,
+        refreshToken: account.refresh_token,
+      },
+      create: {
+        userId: dbUser.id,
+        provider: account.provider,
+        providerAccountId: account.providerAccountId,
+        accessToken: account.access_token,
+        refreshToken: account.refresh_token,
+      },
+    });
+  }
+  
+  return dbUser;
+}
+\end{lstlisting}

@@ -1,0 +1,513 @@
+\chapter{Backend API Design}
+
+\section{Overview}
+
+The Nest.js backend provides a comprehensive RESTful API and WebSocket gateway for all platform functionality. The API follows REST principles with clear resource-based endpoints and consistent response formats.
+
+\section{API Architecture}
+
+\subsection{Module Organization}
+
+The backend is organized into feature modules:
+
+\begin{itemize}
+    \item \textbf{Auth Module}: Authentication and authorization
+    \item \textbf{Users Module}: User management
+    \item \textbf{Games Module}: Game operations
+    \item \textbf{Chess Module}: Chess engine and move validation
+    \item \textbf{Ratings Module}: ELO rating calculations
+    \item \textbf{Academy Module}: Learning content
+    \item \textbf{Chat Module}: Chat functionality
+    \item \textbf{Voting Module}: Chaos mode voting
+    \item \textbf{Payments Module}: Stripe integration
+    \item \textbf{Notifications Module}: User notifications
+\end{itemize}
+
+\subsection{API Versioning}
+
+\begin{itemize}
+    \item \textbf{Base URL}: \texttt{/api/v1}
+    \item \textbf{Version Header}: \texttt{API-Version: v1}
+    \item \textbf{Backward Compatibility}: Maintained for at least one major version
+\end{itemize}
+
+\section{Authentication Endpoints}
+
+\subsection{POST /api/v1/auth/register}
+
+Register a new user account.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "email": "user@example.com",
+  "username": "chessplayer",
+  "password": "securepassword",
+  "name": "Chess Player"
+}
+\end{lstlisting}
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "user": {
+    "id": "clx...",
+    "email": "user@example.com",
+    "username": "chessplayer"
+  },
+  "accessToken": "eyJhbGc...",
+  "refreshToken": "eyJhbGc..."
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/auth/login}
+
+Authenticate user and return tokens.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "email": "user@example.com",
+  "password": "securepassword"
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/auth/oauth/:provider}
+
+Initiate OAuth flow with specified provider (google, github, discord).
+
+\subsection{POST /api/v1/auth/refresh}
+
+Refresh access token using refresh token.
+
+\subsection{POST /api/v1/auth/logout}
+
+Invalidate current session.
+
+\section{User Endpoints}
+
+\subsection{GET /api/v1/users/me}
+
+Get current user profile.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "id": "clx...",
+  "email": "user@example.com",
+  "username": "chessplayer",
+  "name": "Chess Player",
+  "avatar": "https://...",
+  "bio": "...",
+  "ratings": {
+    "overall": 1500,
+    "blitz": 1450,
+    "rapid": 1520
+  },
+  "isPremium": false,
+  "createdAt": "2024-01-01T00:00:00Z"
+}
+\end{lstlisting}
+
+\subsection{PUT /api/v1/users/me}
+
+Update current user profile.
+
+\subsection{GET /api/v1/users/:id}
+
+Get public user profile by ID.
+
+\subsection{GET /api/v1/users/:id/stats}
+
+Get user statistics.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "gamesPlayed": 150,
+  "wins": 75,
+  "losses": 50,
+  "draws": 25,
+  "winRate": 50.0,
+  "averageRating": 1500,
+  "peakRating": 1650
+}
+\end{lstlisting}
+
+\section{Game Endpoints}
+
+\subsection{POST /api/v1/games}
+
+Create a new game.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "opponentId": "clx...",
+  "timeControl": "300+0",
+  "isRated": true,
+  "isChaosMode": false,
+  "isPublic": true
+}
+\end{lstlisting}
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "id": "game-id",
+  "whitePlayer": {...},
+  "blackPlayer": {...},
+  "status": "WAITING",
+  "timeControl": "300+0",
+  "createdAt": "2024-01-01T00:00:00Z"
+}
+\end{lstlisting}
+
+\subsection{GET /api/v1/games}
+
+List games with filtering and pagination.
+
+\textbf{Query Parameters:}
+\begin{itemize}
+    \item \texttt{status}: Filter by game status
+    \item \texttt{userId}: Filter by player
+    \item \texttt{isRated}: Filter rated games
+    \item \texttt{page}: Page number
+    \item \texttt{limit}: Items per page
+\end{itemize}
+
+\subsection{GET /api/v1/games/:id}
+
+Get game details.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "id": "game-id",
+  "whitePlayer": {...},
+  "blackPlayer": {...},
+  "status": "IN_PROGRESS",
+  "currentFen": "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
+  "moves": [
+    {
+      "moveNumber": 1,
+      "move": "e2e4",
+      "san": "e4",
+      "isWhiteMove": true,
+      "timestamp": "2024-01-01T00:00:00Z"
+    }
+  ],
+  "whiteTimeLeft": 285000,
+  "blackTimeLeft": 300000,
+  "startedAt": "2024-01-01T00:00:00Z"
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/games/:id/moves}
+
+Make a move in a game.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "move": "e2e4",
+  "from": "e2",
+  "to": "e4"
+}
+\end{lstlisting}
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "success": true,
+  "move": {
+    "moveNumber": 1,
+    "move": "e2e4",
+    "fen": "rnbqkbnr/pppppppp/8/8/4P3/8/PPPP1PPP/RNBQKBNR b KQkq e3 0 1",
+    "isWhiteMove": true
+  },
+  "gameStatus": "IN_PROGRESS",
+  "result": null
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/games/:id/resign}
+
+Resign from a game.
+
+\subsection{POST /api/v1/games/:id/draw-offer}
+
+Offer a draw.
+
+\subsection{POST /api/v1/games/:id/draw-accept}
+
+Accept a draw offer.
+
+\subsection{GET /api/v1/games/:id/analysis}
+
+Get game analysis with engine evaluation.
+
+\section{Rating Endpoints}
+
+\subsection{GET /api/v1/ratings/me}
+
+Get current user's ratings.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "overall": {
+    "rating": 1500,
+    "gamesPlayed": 100,
+    "wins": 50,
+    "losses": 30,
+    "draws": 20
+  },
+  "blitz": {...},
+  "rapid": {...},
+  "classical": {...}
+}
+\end{lstlisting}
+
+\subsection{GET /api/v1/ratings/leaderboard}
+
+Get leaderboard for a rating type.
+
+\textbf{Query Parameters:}
+\begin{itemize}
+    \item \texttt{type}: Rating type (BLITZ, RAPID, etc.)
+    \item \texttt{page}: Page number
+    \item \texttt{limit}: Items per page
+\end{itemize}
+
+\subsection{GET /api/v1/ratings/:userId/history}
+
+Get rating history for a user.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "ratingType": "BLITZ",
+  "history": [
+    {
+      "rating": 1500,
+      "change": 0,
+      "gameId": "game-id",
+      "timestamp": "2024-01-01T00:00:00Z"
+    }
+  ]
+}
+\end{lstlisting}
+
+\section{Academy Endpoints}
+
+\subsection{GET /api/v1/academy/courses}
+
+List all academy courses.
+
+\subsection{GET /api/v1/academy/courses/:id}
+
+Get course details.
+
+\subsection{GET /api/v1/academy/courses/:id/lessons}
+
+Get lessons for a course.
+
+\subsection{GET /api/v1/academy/lessons/:id}
+
+Get lesson content.
+
+\subsection{POST /api/v1/academy/lessons/:id/complete}
+
+Mark lesson as completed.
+
+\subsection{GET /api/v1/academy/progress}
+
+Get user's academy progress.
+
+\subsection{GET /api/v1/academy/puzzles/daily}
+
+Get daily puzzle.
+
+\subsection{POST /api/v1/academy/puzzles/:id/solve}
+
+Submit puzzle solution.
+
+\section{Chat Endpoints}
+
+\subsection{GET /api/v1/chat/games/:gameId/messages}
+
+Get chat messages for a game.
+
+\textbf{Query Parameters:}
+\begin{itemize}
+    \item \texttt{limit}: Number of messages
+    \item \texttt{before}: Get messages before timestamp
+\end{itemize}
+
+\subsection{POST /api/v1/chat/games/:gameId/messages}
+
+Send a chat message (also via WebSocket).
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "message": "Great move!",
+  "messageType": "TEXT"
+}
+\end{lstlisting}
+
+\section{Voting Endpoints (Chaos Mode)}
+
+\subsection{GET /api/v1/voting/games/:gameId/current-round}
+
+Get current voting round information.
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "round": 1,
+  "suggestedMoves": [
+    {"move": "e2e4", "votes": 50},
+    {"move": "d2d4", "votes": 30}
+  ],
+  "timeRemaining": 15000,
+  "isActive": true
+}
+\end{lstlisting}
+
+\subsection{POST /api/v1/voting/games/:gameId/vote}
+
+Submit a vote for a move.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "move": "e2e4"
+}
+\end{lstlisting}
+
+\section{Payment Endpoints}
+
+\subsection{POST /api/v1/payments/create-checkout}
+
+Create Stripe checkout session.
+
+\textbf{Request Body:}
+\begin{lstlisting}[language=json]
+{
+  "tier": "PREMIUM",
+  "successUrl": "https://...",
+  "cancelUrl": "https://..."
+}
+\end{lstlisting}
+
+\textbf{Response:}
+\begin{lstlisting}[language=json]
+{
+  "sessionId": "cs_...",
+  "url": "https://checkout.stripe.com/..."
+}
+\end{lstlisting}
+
+\subsection{GET /api/v1/payments/subscription}
+
+Get current user's subscription.
+
+\subsection{POST /api/v1/payments/cancel-subscription}
+
+Cancel current subscription.
+
+\subsection{POST /api/v1/payments/webhook}
+
+Stripe webhook endpoint (handles subscription events).
+
+\section{Error Handling}
+
+\subsection{Error Response Format}
+
+All errors follow a consistent format:
+
+\begin{lstlisting}[language=json]
+{
+  "statusCode": 400,
+  "message": "Validation failed",
+  "error": "Bad Request",
+  "details": [
+    {
+      "field": "email",
+      "message": "Email is required"
+    }
+  ],
+  "timestamp": "2024-01-01T00:00:00Z",
+  "path": "/api/v1/auth/register"
+}
+\end{lstlisting}
+
+\subsection{HTTP Status Codes}
+
+\begin{itemize}
+    \item \textbf{200 OK}: Successful request
+    \item \textbf{201 Created}: Resource created
+    \item \textbf{400 Bad Request}: Invalid request
+    \item \textbf{401 Unauthorized}: Authentication required
+    \item \textbf{403 Forbidden}: Insufficient permissions
+    \item \textbf{404 Not Found}: Resource not found
+    \textbf{409 Conflict}: Resource conflict
+    \item \textbf{422 Unprocessable Entity}: Validation error
+    \item \textbf{500 Internal Server Error}: Server error
+\end{itemize}
+
+\section{Request Validation}
+
+All endpoints use DTOs (Data Transfer Objects) with class-validator for validation:
+
+\begin{lstlisting}[language=typescript]
+export class CreateGameDto {
+  @IsString()
+  @IsNotEmpty()
+  opponentId: string;
+
+  @IsString()
+  @IsNotEmpty()
+  timeControl: string;
+
+  @IsBoolean()
+  @IsOptional()
+  isRated?: boolean;
+}
+\end{lstlisting}
+
+\section{Rate Limiting}
+
+\begin{itemize}
+    \item \textbf{General API}: 100 requests per minute per IP
+    \item \textbf{Authentication}: 5 requests per minute per IP
+    \item \textbf{Game Moves}: 10 moves per second per user
+    \item \textbf{Chat}: 20 messages per minute per user
+\end{itemize}
+
+\section{Pagination}
+
+All list endpoints support pagination:
+
+\textbf{Query Parameters:}
+\begin{itemize}
+    \item \texttt{page}: Page number (default: 1)
+    \item \texttt{limit}: Items per page (default: 20, max: 100)
+\end{itemize}
+
+\textbf{Response Format:}
+\begin{lstlisting}[language=json]
+{
+  "data": [...],
+  "meta": {
+    "page": 1,
+    "limit": 20,
+    "total": 100,
+    "totalPages": 5,
+    "hasNext": true,
+    "hasPrev": false
+  }
+}
+\end{lstlisting}

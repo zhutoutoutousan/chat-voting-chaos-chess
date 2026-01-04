@@ -1,19 +1,7 @@
 {
-  "rewrites": [
-    {
-      "source": "/socket.io/:path*",
-      "destination": "https://api.chaoschess.xyz/socket.io/:path*"
-    }
-  ],
-  "headers": [
-    {
-      "source": "/socket.io/(.*)",
-      "headers": [
-        { "key": "Access-Control-Allow-Credentials", "value": "true" },
-        { "key": "Access-Control-Allow-Origin", "value": "https://www.chaoschess.xyz" },
-        { "key": "Access-Control-Allow-Methods", "value": "GET,POST,OPTIONS" },
-        { "key": "Access-Control-Allow-Headers", "value": "X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version" }
-      ]
-    }
-  ]
-} 
+  "buildCommand": "turbo build",
+  "devCommand": "turbo dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "rootDirectory": "apps/frontend"
+}

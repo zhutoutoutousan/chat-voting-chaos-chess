@@ -1,0 +1,98 @@
+\section{Stage 5: Next Steps and Polish}
+\subsection{Planned Date}
+To be determined
+
+\subsection{Objective}
+Complete remaining features, integrate NextAuth.js, add polish, and prepare for deployment.
+
+\subsection{Planned Tasks}
+
+\subsubsection{NextAuth.js Integration}
+\begin{enumerate}
+    \item Install and configure NextAuth.js
+    \item Set up JWT strategy
+    \item Configure session management
+    \item Create API route \texttt{/api/auth/[...nextauth]}
+    \item OAuth providers (optional):
+    \begin{itemize}
+        \item Google OAuth
+        \item GitHub OAuth
+        \item Discord OAuth
+    \end{itemize}
+    \item Create AuthProvider context
+    \item Create useAuth hook
+    \item Protected route middleware
+\end{enumerate}
+
+\subsubsection{Frontend Enhancements}
+\begin{enumerate}
+    \item Improve chess board:
+    \begin{itemize}
+        \item Better piece rendering (images or SVG)
+        \item Drag and drop support
+        \item Move animation
+        \item Legal move highlighting improvements
+    \end{itemize}
+    \item Game controls:
+    \begin{itemize}
+        \item Resign button
+        \item Draw offer button
+        \item Time display
+        \item Game status indicators
+    \end{itemize}
+    \item User dashboard:
+    \begin{itemize}
+        \item User profile page
+        \item Rating display
+        \item Game history
+        \item Statistics
+    \end{itemize}
+    \item Matchmaking:
+    \begin{itemize}
+        \item Quick match button
+        \item Challenge player
+        \item Game creation form
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Backend Enhancements}
+\begin{enumerate}
+    \item Matchmaking service:
+    \begin{itemize}
+        \item Queue management
+        \item Rating-based matching
+        \item Time control matching
+    \end{itemize}
+    \item Game analysis:
+    \begin{itemize}
+        \item Engine integration (Stockfish.js)
+        \item Move evaluation
+        \item Best move suggestions
+    \end{itemize}
+    \item Rate limiting:
+    \begin{itemize}
+        \item API rate limiting
+        \item Chat rate limiting
+        \item Vote rate limiting
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Testing}
+\begin{enumerate}
+    \item Backend unit tests
+    \item Integration tests
+    \item Frontend component tests
+    \item E2E tests for critical flows
+\end{enumerate}
+
+\subsubsection{Deployment Preparation}
+\begin{enumerate}
+    \item Environment variable configuration
+    \item Supabase setup and migrations
+    \item Vercel configuration
+    \item Build optimization
+    \item Error monitoring setup
+\end{enumerate}
+
+\subsection{Status}
+\fbox{\textbf{PLANNED}} - Ready for next phase

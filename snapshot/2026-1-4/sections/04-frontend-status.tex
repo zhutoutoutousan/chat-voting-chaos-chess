@@ -1,0 +1,196 @@
+\section{Frontend Status}
+
+\subsection{Frontend Framework}
+\begin{itemize}
+    \item \textbf{Framework}: Next.js 14.0.4 (App Router)
+    \item \textbf{Language}: TypeScript
+    \item \textbf{UI Library}: React 18.2.0
+    \item \textbf{Styling}: Tailwind CSS 3.4.0
+    \item \textbf{Authentication}: NextAuth.js 4.24.5
+    \item \textbf{Real-time}: Socket.io Client 4.6.1
+    \item \textbf{Port}: 3000 (development)
+\end{itemize}
+
+\subsection{Frontend Structure}
+
+\subsubsection{App Router Structure}
+\begin{lstlisting}[language=bash, caption=Frontend Directory Structure]
+apps/frontend/
+├── app/
+│   ├── (auth)/
+│   │   ├── login/
+│   │   └── register/
+│   ├── (dashboard)/
+│   │   ├── games/
+│   │   │   ├── [id]/
+│   │   │   └── new/
+│   │   └── profile/
+│   ├── api/
+│   │   └── auth/
+│   │       └── [...nextauth]/
+│   ├── layout.tsx
+│   ├── page.tsx
+│   └── globals.css
+├── components/
+│   ├── chess/
+│   │   └── ChessBoard.tsx
+│   ├── chat/
+│   │   └── ChatWindow.tsx
+│   ├── voting/
+│   │   └── VotingPanel.tsx
+│   ├── game/
+│   │   ├── GameControls.tsx
+│   │   └── GameClock.tsx
+│   └── layout/
+│       └── Header.tsx
+├── hooks/
+│   ├── useGameWebSocket.ts
+│   ├── useChatWebSocket.ts
+│   └── useVotingWebSocket.ts
+├── lib/
+│   ├── api.ts
+│   └── chess.ts
+└── contexts/
+    └── AuthContext.tsx
+\end{lstlisting}
+
+\subsection{Pages}
+
+\subsubsection{Public Pages}
+\begin{itemize}
+    \item \texttt{/} - Home page with navigation
+    \item \texttt{/login} - Login page
+    \item \texttt{/register} - Registration page
+\end{itemize}
+
+\subsubsection{Protected Pages}
+\begin{itemize}
+    \item \texttt{/games} - Games list page
+    \item \texttt{/games/new} - Create new game
+    \item \texttt{/games/[id]} - Game detail page with board, chat, voting
+    \item \texttt{/profile} - User profile page
+\end{itemize}
+
+\subsection{Components}
+
+\subsubsection{Chess Components}
+\begin{itemize}
+    \item \texttt{ChessBoard} - Interactive 8x8 chess board
+    \begin{itemize}
+        \item FEN position parsing
+        \item Piece rendering (Unicode symbols)
+        \item Square selection
+        \item Legal move highlighting
+        \item Click to move
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Game Components}
+\begin{itemize}
+    \item \texttt{GameControls} - Game action buttons
+    \begin{itemize}
+        \item Resign button
+        \item Offer draw button
+        \item Accept draw button
+    \end{itemize}
+    \item \texttt{GameClock} - Game timer display
+    \begin{itemize}
+        \item White/black time display
+        \item Active player highlighting
+        \item Countdown timer
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Chat Components}
+\begin{itemize}
+    \item \texttt{ChatWindow} - Chat interface
+    \begin{itemize}
+        \item Message list
+        \item Message input
+        \item Auto-scroll
+        \item Real-time updates
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Voting Components}
+\begin{itemize}
+    \item \texttt{VotingPanel} - Voting interface
+    \begin{itemize}
+        \item Move options display
+        \item Vote buttons
+        \item Vote count visualization
+        \item Voting timer
+        \item Real-time updates
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{Layout Components}
+\begin{itemize}
+    \item \texttt{Header} - Navigation header
+    \begin{itemize}
+        \item Logo/branding
+        \item Navigation menu
+        \item User authentication state
+        \item Logout button
+    \end{itemize}
+\end{itemize}
+
+\subsection{WebSocket Hooks}
+
+\subsubsection{useGameWebSocket}
+\begin{itemize}
+    \item Connects to \texttt{/games} namespace
+    \item Handles: move-made, game-update, game-finished
+    \item Manages connection state
+    \item Auto-reconnection
+\end{itemize}
+
+\subsubsection{useChatWebSocket}
+\begin{itemize}
+    \item Connects to \texttt{/chat} namespace
+    \item Handles: new-message
+    \item Provides sendMessage function
+    \item Manages connection state
+\end{itemize}
+
+\subsubsection{useVotingWebSocket}
+\begin{itemize}
+    \item Connects to \texttt{/voting} namespace
+    \item Handles: voting-started, vote-update, voting-ended
+    \item Provides submitVote function
+    \item Manages connection state
+\end{itemize}
+
+\subsection{API Client}
+\begin{itemize}
+    \item Centralized fetch wrapper (\texttt{lib/api.ts})
+    \item Type-safe API calls
+    \item Automatic token management
+    \item Error handling
+    \item API functions for:
+    \begin{itemize}
+        \item Auth (login, register, getMe)
+        \item Games (list, get, create, move, resign, draw)
+        \item Ratings (getMyRatings, leaderboard, history)
+        \item Voting (start, vote, status, end)
+        \item Chat (getMessages, sendMessage)
+    \end{itemize}
+\end{itemize}
+
+\subsection{Authentication}
+\begin{itemize}
+    \item NextAuth.js integration
+    \item JWT strategy
+    \item Session management
+    \item Protected routes (middleware)
+    \item AuthContext and useAuth hook
+    \item Credentials provider
+\end{itemize}
+
+\subsection{Styling}
+\begin{itemize}
+    \item Tailwind CSS configured
+    \item Responsive design
+    \item Dark mode ready (CSS variables)
+    \item Custom color scheme
+\end{itemize}

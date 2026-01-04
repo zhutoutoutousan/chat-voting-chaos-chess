@@ -1,0 +1,319 @@
+\chapter{Monorepo Structure}
+
+\section{Overview}
+
+The project uses a monorepo architecture to manage both frontend and backend codebases, along with shared packages. This approach provides better code sharing, unified tooling, and simplified dependency management.
+
+\section{Directory Structure}
+
+\begin{lstlisting}[language=bash, caption=Complete Monorepo Structure]
+chat-voting-chaos-chess/
+├── apps/
+│   ├── frontend/                    # Next.js application
+│   │   ├── app/                     # App Router directory
+│   │   │   ├── (auth)/              # Auth route group
+│   │   │   │   ├── login/
+│   │   │   │   └── register/
+│   │   │   ├── (dashboard)/         # Dashboard route group
+│   │   │   │   ├── games/
+│   │   │   │   ├── academy/
+│   │   │   │   ├── profile/
+│   │   │   │   └── settings/
+│   │   │   ├── api/                 # API routes
+│   │   │   │   ├── auth/
+│   │   │   │   ├── games/
+│   │   │   │   └── webhooks/
+│   │   │   ├── layout.tsx
+│   │   │   └── page.tsx
+│   │   ├── components/              # React components
+│   │   │   ├── ui/                  # Base UI components
+│   │   │   ├── chess/               # Chess-specific components
+│   │   │   ├── game/                # Game components
+│   │   │   ├── chat/                # Chat components
+│   │   │   └── voting/              # Voting components
+│   │   ├── lib/                     # Utility functions
+│   │   │   ├── utils.ts
+│   │   │   ├── api.ts
+│   │   │   └── chess.ts
+│   │   ├── hooks/                   # Custom React hooks
+│   │   ├── styles/                  # Global styles
+│   │   ├── public/                  # Static assets
+│   │   ├── types/                   # TypeScript types
+│   │   ├── next.config.js
+│   │   ├── tailwind.config.js
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   │
+│   └── backend/                     # Nest.js application
+│       ├── src/
+│       │   ├── main.ts              # Application entry point
+│       │   ├── app.module.ts        # Root module
+│       │   ├── common/              # Shared utilities
+│       │   │   ├── decorators/
+│       │   │   ├── guards/
+│       │   │   ├── interceptors/
+│       │   │   ├── filters/
+│       │   │   └── pipes/
+│       │   ├── config/              # Configuration
+│       │   ├── modules/
+│       │   │   ├── auth/            # Authentication module
+│       │   │   │   ├── auth.controller.ts
+│       │   │   │   ├── auth.service.ts
+│       │   │   │   ├── auth.module.ts
+│       │   │   │   ├── strategies/
+│       │   │   │   └── dto/
+│       │   │   ├── users/           # User management
+│       │   │   ├── games/           # Game logic
+│       │   │   ├── chess/           # Chess engine integration
+│       │   │   ├── academy/         # Chess academy
+│       │   │   ├── chat/            # Chat functionality
+│       │   │   ├── voting/          # Voting system
+│       │   │   ├── payments/        # Stripe integration
+│       │   │   ├── ratings/         # ELO system
+│       │   │   └── notifications/   # Notifications
+│       │   └── database/            # Database configuration
+│       ├── test/                    # Test files
+│       ├── nest-cli.json
+│       ├── tsconfig.json
+│       └── package.json
+│
+├── packages/
+│   ├── shared/                      # Shared TypeScript code
+│   │   ├── src/
+│   │   │   ├── types/               # Shared types
+│   │   │   │   ├── user.types.ts
+│   │   │   │   ├── game.types.ts
+│   │   │   │   └── api.types.ts
+│   │   │   ├── constants/           # Shared constants
+│   │   │   ├── utils/               # Shared utilities
+│   │   │   └── index.ts
+│   │   ├── tsconfig.json
+│   │   └── package.json
+│   │
+│   ├── prisma/                      # Prisma schema and migrations
+│   │   ├── schema.prisma            # Database schema
+│   │   ├── migrations/              # Migration files
+│   │   ├── seed.ts                  # Database seeding
+│   │   └── package.json
+│   │
+│   └── ui/                          # Shared UI components
+│       ├── src/
+│       │   ├── components/
+│       │   └── index.ts
+│       ├── package.json
+│       └── tsconfig.json
+│
+├── spec/                            # Specification documents
+│   ├── main.tex
+│   └── chapters/
+│
+├── .github/
+│   └── workflows/                   # CI/CD workflows
+│       └── ci.yml
+│
+├── .vscode/                         # VS Code settings
+│   └── settings.json
+│
+├── .env.example                     # Environment variables template
+├── .gitignore
+├── .prettierrc                      # Prettier configuration
+├── .eslintrc.js                     # ESLint configuration
+├── package.json                     # Root package.json
+├── pnpm-workspace.yaml              # pnpm workspace config
+├── turbo.json                       # Turborepo configuration
+└── README.md
+\end{lstlisting}
+
+\section{Package Management}
+
+\subsection{Workspace Configuration}
+
+The monorepo uses \texttt{pnpm workspaces} or \texttt{npm workspaces} for package management:
+
+\begin{lstlisting}[language=json, caption=Root package.json]
+{
+  "name": "chat-voting-chaos-chess",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "turbo run dev",
+    "build": "turbo run build",
+    "test": "turbo run test",
+    "lint": "turbo run lint",
+    "format": "prettier --write \"**/*.{ts,tsx,json,md}\""
+  },
+  "devDependencies": {
+    "turbo": "latest",
+    "prettier": "latest",
+    "eslint": "latest",
+    "typescript": "^5.0.0"
+  }
+}
+\end{lstlisting}
+
+\subsection{Turborepo Configuration}
+
+\begin{lstlisting}[language=json, caption=turbo.json]
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "dist/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^lint"]
+    },
+    "test": {
+      "dependsOn": ["^build"]
+    }
+  }
+}
+\end{lstlisting}
+
+\section{Shared Packages}
+
+\subsection{@chaos-chess/shared}
+
+Contains shared TypeScript types, interfaces, and utilities used across frontend and backend.
+
+\begin{itemize}
+    \item Type definitions for API contracts
+    \item Shared constants
+    \item Utility functions
+    \item Validation schemas
+\end{itemize}
+
+\subsection{@chaos-chess/prisma}
+
+Contains Prisma schema and database-related code.
+
+\begin{itemize}
+    \item \texttt{schema.prisma}: Complete database schema
+    \item Migration files
+    \item Database seed scripts
+    \item Prisma client generation
+\end{itemize}
+
+\subsection{@chaos-chess/ui}
+
+Shared UI components library (optional, can be merged with frontend).
+
+\begin{itemize}
+    \item Reusable React components
+    \item Design system components
+    \item Shared styling utilities
+\end{itemize}
+
+\section{Dependency Management}
+
+\subsection{Internal Dependencies}
+
+\begin{itemize}
+    \item Frontend depends on: \texttt{@chaos-chess/shared}, \texttt{@chaos-chess/ui}
+    \item Backend depends on: \texttt{@chaos-chess/shared}, \texttt{@chaos-chess/prisma}
+    \item All packages use TypeScript for type safety
+\end{itemize}
+
+\subsection{External Dependencies}
+
+\begin{itemize}
+    \item Dependencies are managed at the package level
+    \item Common dependencies can be hoisted to root
+    \item Version conflicts resolved through workspace protocol
+\end{itemize}
+
+\section{Build System}
+
+\subsection{Turborepo Tasks}
+
+\begin{itemize}
+    \item \texttt{dev}: Start development servers
+    \item \texttt{build}: Build all applications
+    \item \texttt{test}: Run tests across packages
+    \item \texttt{lint}: Lint all code
+    \item \texttt{format}: Format code with Prettier
+\end{itemize}
+
+\subsection{Build Order}
+
+The build system ensures proper dependency order:
+
+\begin{enumerate}
+    \item Shared packages build first
+    \item Prisma generates client
+    \item Backend builds
+    \item Frontend builds (depends on backend types)
+\end{enumerate}
+
+\section{Environment Configuration}
+
+\subsection{Environment Variables}
+
+Environment variables are managed per application:
+
+\begin{itemize}
+    \item \texttt{apps/frontend/.env.local}: Frontend environment variables
+    \item \texttt{apps/backend/.env}: Backend environment variables
+    \item \texttt{.env.example}: Template for required variables
+\end{itemize}
+
+\subsection{Shared Configuration}
+
+Common configuration can be stored in:
+
+\begin{itemize}
+    \item \texttt{packages/shared/src/config/}: Shared configuration
+    \item Environment-specific overrides
+    \item Type-safe configuration loading
+\end{itemize}
+
+\section{Code Organization Principles}
+
+\subsection{Feature-Based Structure}
+
+Both frontend and backend organize code by features:
+
+\begin{itemize}
+    \item Each feature is self-contained
+    \item Features can be easily added or removed
+    \item Clear separation of concerns
+\end{itemize}
+
+\subsection{Shared Code Guidelines}
+
+\begin{itemize}
+    \item Only truly shared code goes in \texttt{packages/shared}
+    \item Avoid over-sharing to prevent tight coupling
+    \item Use TypeScript interfaces for contracts
+    \item Keep shared code minimal and focused
+\end{itemize}
+
+\section{Development Workflow}
+
+\subsection{Local Development}
+
+\begin{enumerate}
+    \item Install dependencies: \texttt{pnpm install}
+    \item Set up environment variables
+    \item Run database migrations: \texttt{pnpm --filter @chaos-chess/prisma migrate dev}
+    \item Start development: \texttt{pnpm dev}
+\end{enumerate}
+
+\subsection{Adding New Features}
+
+\begin{enumerate}
+    \item Create feature module in appropriate app
+    \item Add shared types if needed
+    \item Update database schema if required
+    \item Add tests
+    \item Update documentation
+\end{enumerate}

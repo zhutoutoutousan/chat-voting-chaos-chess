@@ -1,0 +1,518 @@
+\chapter{Database Schema}
+
+\section{Overview}
+
+The database schema is designed using Prisma ORM, providing type-safe database access and automatic migration generation. The schema supports all platform features including user management, games, ratings, academy content, and payments.
+
+\section{Schema Design Principles}
+
+\begin{itemize}
+    \item \textbf{Normalization}: Third normal form where appropriate
+    \item \textbf{Performance}: Indexed fields for common queries
+    \item \textbf{Scalability}: Designed for horizontal scaling
+    \item \textbf{Type Safety}: Prisma-generated types
+    \item \textbf{Audit Trails}: Timestamps on all records
+    \item \textbf{Soft Deletes}: Where appropriate for data retention
+\end{itemize}
+
+\section{Core Models}
+
+\subsection{User Model}
+
+\begin{lstlisting}[language=prisma, caption=User Model]
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  username      String    @unique
+  name          String?
+  avatar        String?
+  bio           String?
+  
+  // Authentication
+  passwordHash  String?
+  oauthAccounts OAuthAccount[]
+  
+  // Relationships
+  gamesAsWhite  Game[]    @relation("WhitePlayer")
+  gamesAsBlack  Game[]    @relation("BlackPlayer")
+  ratings       Rating[]
+  academyProgress AcademyProgress[]
+  votes         Vote[]
+  chatMessages  ChatMessage[]
+  subscriptions Subscription[]
+  friends       Friendship[] @relation("User")
+  friendOf      Friendship[] @relation("Friend")
+  notifications Notification[]
+  posts         Post[]
+  comments      Comment[]
+  clubMembers   ClubMember[]
+  
+  // Metadata
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  lastLoginAt   DateTime?
+  isActive      Boolean   @default(true)
+  isPremium     Boolean   @default(false)
+  isAdmin       Boolean   @default(false)
+  
+  @@index([email])
+  @@index([username])
+  @@index([isActive])
+}
+\end{lstlisting}
+
+\subsection{OAuth Account Model}
+
+\begin{lstlisting}[language=prisma, caption=OAuth Account Model]
+model OAuthAccount {
+  id                String   @id @default(cuid())
+  userId            String
+  provider          String   // 'google', 'github', 'discord'
+  providerAccountId String
+  accessToken       String?
+  refreshToken      String?
+  expiresAt         DateTime?
+  
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  @@unique([provider, providerAccountId])
+  @@index([userId])
+}
+\end{lstlisting}
+
+\subsection{Game Model}
+
+\begin{lstlisting}[language=prisma, caption=Game Model]
+model Game {
+  id              String      @id @default(cuid())
+  whitePlayerId   String
+  blackPlayerId   String
+  whitePlayer     User        @relation("WhitePlayer", fields: [whitePlayerId], references: [id])
+  blackPlayer     User        @relation("BlackPlayer", fields: [blackPlayerId], references: [id])
+  
+  // Game State
+  status          GameStatus  @default(WAITING)
+  result          GameResult?
+  currentFen      String      @default("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1")
+  moves           Move[]
+  pgn             String?
+  
+  // Game Settings
+  timeControl     String      // "300+0", "600+10", etc.
+  isRated         Boolean     @default(true)
+  isChaosMode     Boolean     @default(false)
+  isPublic        Boolean     @default(true)
+  
+  // Timing
+  whiteTimeLeft   Int?        // milliseconds
+  blackTimeLeft   Int?        // milliseconds
+  startedAt       DateTime?
+  finishedAt      DateTime?
+  
+  // Relationships
+  votes           Vote[]
+  chatMessages    ChatMessage[]
+  spectators      GameSpectator[]
+  
+  // Metadata
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@index([whitePlayerId])
+  @@index([blackPlayerId])
+  @@index([status])
+  @@index([isRated])
+  @@index([createdAt])
+}
+\end{lstlisting}
+
+\subsection{Move Model}
+
+\begin{lstlisting}[language=prisma, caption=Move Model]
+model Move {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  
+  moveNumber  Int
+  move        String   // "e2e4", "Nf3", etc.
+  fen         String   // Position after move
+  san         String?  // Standard Algebraic Notation
+  isWhiteMove Boolean
+  
+  // Analysis
+  evaluation  Float?   // Engine evaluation
+  bestMove    String?  // Engine best move
+  
+  // Timing
+  timestamp   DateTime @default(now())
+  timeSpent   Int?     // milliseconds
+  
+  @@index([gameId])
+  @@index([gameId, moveNumber])
+}
+\end{lstlisting}
+
+\subsection{Rating Model}
+
+\begin{lstlisting}[language=prisma, caption=Rating Model]
+model Rating {
+  id              String      @id @default(cuid())
+  userId          String
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  ratingType      RatingType  // OVERALL, BLITZ, RAPID, CLASSICAL, CORRESPONDENCE, PUZZLE, CHAOS
+  rating          Int         @default(1200)
+  gamesPlayed     Int         @default(0)
+  wins            Int         @default(0)
+  losses          Int         @default(0)
+  draws           Int         @default(0)
+  
+  // Rating History
+  peakRating      Int?
+  peakRatingDate  DateTime?
+  
+  // Metadata
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  
+  @@unique([userId, ratingType])
+  @@index([userId])
+  @@index([ratingType, rating])
+}
+\end{lstlisting}
+
+\subsection{Vote Model (Chaos Mode)}
+
+\begin{lstlisting}[language=prisma, caption=Vote Model]
+model Vote {
+  id          String   @id @default(cuid())
+  gameId      String
+  game        Game     @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  move        String   // The move being voted for
+  voteWeight  Int      @default(1) // Premium users may have higher weight
+  
+  // Voting Window
+  votingRound Int      // Which voting round this belongs to
+  timestamp   DateTime @default(now())
+  
+  @@index([gameId, votingRound])
+  @@index([userId])
+}
+\end{lstlisting}
+
+\subsection{Chat Message Model}
+
+\begin{lstlisting}[language=prisma, caption=Chat Message Model]
+model ChatMessage {
+  id          String   @id @default(cuid())
+  gameId      String?
+  game        Game?    @relation(fields: [gameId], references: [id], onDelete: Cascade)
+  userId      String
+  user        User     @relation(fields: [userId], references: [id])
+  
+  message     String
+  messageType MessageType @default(TEXT) // TEXT, MOVE_SUGGESTION, SYSTEM
+  
+  // Moderation
+  isDeleted   Boolean  @default(false)
+  deletedAt   DateTime?
+  
+  timestamp   DateTime @default(now())
+  
+  @@index([gameId])
+  @@index([userId])
+  @@index([timestamp])
+}
+\end{lstlisting}
+
+\section{Academy Models}
+
+\subsection{Academy Course Model}
+
+\begin{lstlisting}[language=prisma, caption=Academy Course Model]
+model AcademyCourse {
+  id          String   @id @default(cuid())
+  title       String
+  description String?
+  slug        String   @unique
+  difficulty  DifficultyLevel
+  order       Int
+  
+  // Content
+  lessons     AcademyLesson[]
+  progress    AcademyProgress[]
+  
+  // Metadata
+  isPublished Boolean  @default(false)
+  isPremium   Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([slug])
+  @@index([difficulty])
+}
+\end{lstlisting}
+
+\subsection{Academy Lesson Model}
+
+\begin{lstlisting}[language=prisma, caption=Academy Lesson Model]
+model AcademyLesson {
+  id          String   @id @default(cuid())
+  courseId    String
+  course      AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     Json     // Rich content structure
+  order       Int
+  
+  // Metadata
+  duration    Int?     // Estimated minutes
+  isPublished Boolean  @default(false)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([courseId])
+}
+\end{lstlisting}
+
+\subsection{Academy Progress Model}
+
+\begin{lstlisting}[language=prisma, caption=Academy Progress Model]
+model AcademyProgress {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  courseId    String
+  course      AcademyCourse @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  
+  completedLessons String[] // Array of lesson IDs
+  progressPercent  Float     @default(0)
+  completedAt      DateTime?
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, courseId])
+  @@index([userId])
+}
+\end{lstlisting}
+
+\subsection{Puzzle Model}
+
+\begin{lstlisting}[language=prisma, caption=Puzzle Model]
+model Puzzle {
+  id          String   @id @default(cuid())
+  fen         String
+  solution    String[] // Array of moves
+  difficulty  DifficultyLevel
+  theme       PuzzleTheme
+  
+  // Statistics
+  attempts    Int      @default(0)
+  solves      Int      @default(0)
+  
+  createdAt   DateTime @default(now())
+  
+  @@index([difficulty])
+  @@index([theme])
+}
+\end{lstlisting}
+
+\section{Payment Models}
+
+\subsection{Subscription Model}
+
+\begin{lstlisting}[language=prisma, caption=Subscription Model]
+model Subscription {
+  id                String   @id @default(cuid())
+  userId            String
+  user              User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  stripeCustomerId  String   @unique
+  stripeSubscriptionId String @unique
+  stripePriceId     String
+  
+  status            SubscriptionStatus
+  tier              SubscriptionTier // FREE, PREMIUM, DIAMOND
+  
+  currentPeriodStart DateTime
+  currentPeriodEnd   DateTime
+  cancelAtPeriodEnd  Boolean @default(false)
+  
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([status])
+}
+\end{lstlisting}
+
+\section{Social Models}
+
+\subsection{Friendship Model}
+
+\begin{lstlisting}[language=prisma, caption=Friendship Model]
+model Friendship {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation("User", fields: [userId], references: [id], onDelete: Cascade)
+  friendId    String
+  friend      User     @relation("Friend", fields: [friendId], references: [id], onDelete: Cascade)
+  
+  status      FriendshipStatus @default(PENDING)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@unique([userId, friendId])
+  @@index([userId])
+  @@index([friendId])
+}
+\end{lstlisting}
+
+\subsection{Post Model}
+
+\begin{lstlisting}[language=prisma, caption=Post Model]
+model Post {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  title       String
+  content     String
+  gameId      String?  // If post is about a game
+  
+  likes       Int      @default(0)
+  comments    Comment[]
+  
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  
+  @@index([userId])
+  @@index([createdAt])
+}
+\end{lstlisting}
+
+\section{Enums}
+
+\begin{lstlisting}[language=prisma, caption=Database Enums]
+enum GameStatus {
+  WAITING
+  IN_PROGRESS
+  FINISHED
+  ABANDONED
+  DRAW_OFFERED
+}
+
+enum GameResult {
+  WHITE_WINS
+  BLACK_WINS
+  DRAW
+  WHITE_RESIGNED
+  BLACK_RESIGNED
+  WHITE_TIMEOUT
+  BLACK_TIMEOUT
+  DRAW_AGREED
+  STALEMATE
+  INSUFFICIENT_MATERIAL
+  THREEFOLD_REPETITION
+  FIFTY_MOVE_RULE
+}
+
+enum RatingType {
+  OVERALL
+  BLITZ
+  RAPID
+  CLASSICAL
+  CORRESPONDENCE
+  PUZZLE
+  CHAOS
+}
+
+enum MessageType {
+  TEXT
+  MOVE_SUGGESTION
+  SYSTEM
+}
+
+enum DifficultyLevel {
+  BEGINNER
+  INTERMEDIATE
+  ADVANCED
+  EXPERT
+  MASTER
+}
+
+enum PuzzleTheme {
+  TACTICS
+  ENDGAME
+  OPENING
+  STRATEGY
+  CHECKMATE
+}
+
+enum SubscriptionStatus {
+  ACTIVE
+  CANCELED
+  PAST_DUE
+  UNPAID
+  TRIALING
+}
+
+enum SubscriptionTier {
+  FREE
+  PREMIUM
+  DIAMOND
+}
+
+enum FriendshipStatus {
+  PENDING
+  ACCEPTED
+  BLOCKED
+}
+\end{lstlisting}
+
+\section{Indexes \& Performance}
+
+\subsection{Primary Indexes}
+
+All models have appropriate indexes for:
+\begin{itemize}
+    \item Foreign key relationships
+    \item Common query patterns
+    \item Sorting operations
+    \item Full-text search (where applicable)
+\end{itemize}
+
+\subsection{Query Optimization}
+
+\begin{itemize}
+    \item Composite indexes for multi-field queries
+    \item Partial indexes for filtered queries
+    \item Covering indexes for read-heavy operations
+    \item Regular index maintenance and analysis
+\end{itemize}
+
+\section{Migrations}
+
+\subsection{Migration Strategy}
+
+\begin{itemize}
+    \item \textbf{Prisma Migrate}: Use Prisma's migration system
+    \item \textbf{Version Control}: All migrations in version control
+    \item \textbf{Environment-Specific}: Separate migrations for dev/staging/prod
+    \item \textbf{Rollback Support}: Ability to rollback migrations
+\end{itemize}
+
+\subsection{Seed Data}
+
+\begin{itemize}
+    \item Initial admin user
+    \item Sample academy content
+    \item Puzzle database
+    \item Default configurations
+\end{itemize}

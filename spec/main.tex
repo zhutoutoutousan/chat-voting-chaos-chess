@@ -1,0 +1,125 @@
+\documentclass[11pt,a4paper]{book}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{amssymb}
+\usepackage{tikz}
+\usepackage{float}
+\usepackage{booktabs}
+\usepackage{longtable}
+
+% Page setup
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Chat Voting Chaos Chess Platform Specification},
+    pdfauthor={Development Team},
+    pdfsubject={Technical Specification Document}
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false
+}
+
+% Title page
+\title{Chat Voting Chaos Chess Platform\\Technical Specification Document}
+\author{Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\frontmatter
+
+\tableofcontents
+\listoffigures
+\listoftables
+
+\mainmatter
+
+% Introduction
+\input{chapters/01-introduction}
+
+% Architecture Overview
+\input{chapters/02-architecture}
+
+% Technology Stack
+\input{chapters/03-technology-stack}
+
+% Monorepo Structure
+\input{chapters/04-monorepo-structure}
+
+% Core Features
+\input{chapters/05-core-features}
+
+% Database Schema
+\input{chapters/06-database-schema}
+
+% Backend API Design
+\input{chapters/07-backend-api}
+
+% Frontend Architecture
+\input{chapters/08-frontend-architecture}
+
+% Authentication & Authorization
+\input{chapters/09-authentication}
+
+% Payment Integration
+\input{chapters/10-payment-integration}
+
+% Real-time Communication
+\input{chapters/11-realtime-communication}
+
+% Deployment Strategy
+\input{chapters/12-deployment}
+
+% Security Considerations
+\input{chapters/13-security}
+
+% Testing Strategy
+\input{chapters/14-testing}
+
+% Performance & Scalability
+\input{chapters/15-performance}
+
+% Future Enhancements
+\input{chapters/16-future-enhancements}
+
+% Chaos Mod Integration
+\input{chapters/17-chaos-mod-chess-integration}
+
+% Multiplayer, Chat Rooms, and Platform Economy
+\input{chapters/18-multiplayer-chat-economy}
+
+\backmatter
+
+\appendix
+
+% API Endpoints Reference
+\input{chapters/appendix-a-api-reference}
+
+% Database ER Diagrams
+\input{chapters/appendix-b-database-diagrams}
+
+% Glossary
+\input{chapters/appendix-c-glossary}
+
+\end{document}

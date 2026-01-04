@@ -1,0 +1,542 @@
+\chapter{Real-time Communication}
+
+\section{Overview}
+
+The platform uses WebSocket connections for real-time features including live game moves, chat messages, voting updates, and online presence. This chapter details the WebSocket implementation architecture.
+
+\section{WebSocket Architecture}
+
+\subsection{Connection Strategy}
+
+\begin{itemize}
+    \item \textbf{Persistent Connections}: Long-lived WebSocket connections
+    \item \textbf{Room-Based}: Games and channels as separate rooms
+    \item \textbf{Connection Pooling}: Efficient connection management
+    \item \textbf{Reconnection Logic}: Automatic reconnection on disconnect
+\end{itemize}
+
+\subsection{Technology Choice}
+
+Options for WebSocket implementation:
+
+\begin{itemize}
+    \item \textbf{Native WebSocket}: Browser WebSocket API
+    \item \textbf{Socket.io}: Feature-rich WebSocket library (recommended)
+    \item \textbf{ws}: Node.js WebSocket library for backend
+\end{itemize}
+
+\section{Backend WebSocket Implementation}
+
+\subsection{Nest.js WebSocket Gateway}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/games/games.gateway.ts
+import {
+  WebSocketGateway,
+  WebSocketServer,
+  SubscribeMessage,
+  OnGatewayConnection,
+  OnGatewayDisconnect,
+  MessageBody,
+  ConnectedSocket,
+} from '@nestjs/websockets';
+import { Server, Socket } from 'socket.io';
+import { UseGuards } from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+
+@WebSocketGateway({
+  cors: {
+    origin: process.env.FRONTEND_URL,
+    credentials: true,
+  },
+  namespace: '/games',
+})
+export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
+  @WebSocketServer()
+  server: Server;
+  
+  private gameRooms = new Map<string, Set<string>>(); // gameId -> Set of socketIds
+  
+  handleConnection(client: Socket) {
+    console.log(`Client connected: ${client.id}`);
+  }
+  
+  handleDisconnect(client: Socket) {
+    console.log(`Client disconnected: ${client.id}`);
+    // Clean up game rooms
+    this.gameRooms.forEach((sockets, gameId) => {
+      sockets.delete(client.id);
+      if (sockets.size === 0) {
+        this.gameRooms.delete(gameId);
+      }
+    });
+  }
+  
+  @SubscribeMessage('join-game')
+  handleJoinGame(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId } = data;
+    client.join(`game:${gameId}`);
+    
+    if (!this.gameRooms.has(gameId)) {
+      this.gameRooms.set(gameId, new Set());
+    }
+    this.gameRooms.get(gameId)!.add(client.id);
+    
+    // Notify others in the room
+    client.to(`game:${gameId}`).emit('user-joined', {
+      userId: client.data.userId,
+      socketId: client.id,
+    });
+  }
+  
+  @SubscribeMessage('leave-game')
+  handleLeaveGame(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId } = data;
+    client.leave(`game:${gameId}`);
+    
+    const sockets = this.gameRooms.get(gameId);
+    if (sockets) {
+      sockets.delete(client.id);
+      if (sockets.size === 0) {
+        this.gameRooms.delete(gameId);
+      }
+    }
+    
+    client.to(`game:${gameId}`).emit('user-left', {
+      userId: client.data.userId,
+      socketId: client.id,
+    });
+  }
+  
+  @SubscribeMessage('make-move')
+  async handleMakeMove(
+    @MessageBody() data: { gameId: string; move: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId, move } = data;
+    
+    // Validate and process move
+    const result = await this.gamesService.makeMove(gameId, move, client.data.userId);
+    
+    if (result.success) {
+      // Broadcast move to all clients in the game room
+      this.server.to(`game:${gameId}`).emit('move-made', {
+        move: result.move,
+        gameState: result.gameState,
+        timestamp: new Date(),
+      });
+    } else {
+      // Send error to the client
+      client.emit('move-error', {
+        error: result.error,
+      });
+    }
+  }
+  
+  // Broadcast game state updates
+  broadcastGameUpdate(gameId: string, update: any) {
+    this.server.to(`game:${gameId}`).emit('game-update', update);
+  }
+}
+\end{lstlisting}
+
+\subsection{Chat Gateway}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/chat/chat.gateway.ts
+@WebSocketGateway({
+  namespace: '/chat',
+})
+export class ChatGateway {
+  @WebSocketServer()
+  server: Server;
+  
+  @SubscribeMessage('send-message')
+  async handleMessage(
+    @MessageBody() data: { gameId: string; message: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId, message } = data;
+    const userId = client.data.userId;
+    
+    // Save message to database
+    const chatMessage = await this.chatService.createMessage({
+      gameId,
+      userId,
+      message,
+    });
+    
+    // Broadcast to all clients in the game room
+    this.server.to(`game:${gameId}`).emit('new-message', {
+      id: chatMessage.id,
+      userId,
+      username: chatMessage.user.username,
+      message: chatMessage.message,
+      timestamp: chatMessage.timestamp,
+    });
+  }
+  
+  @SubscribeMessage('join-chat')
+  handleJoinChat(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    client.join(`game:${data.gameId}`);
+  }
+}
+\end{lstlisting}
+
+\subsection{Voting Gateway}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/voting/voting.gateway.ts
+@WebSocketGateway({
+  namespace: '/voting',
+})
+export class VotingGateway {
+  @WebSocketServer()
+  server: Server;
+  
+  @SubscribeMessage('submit-vote')
+  async handleVote(
+    @MessageBody() data: { gameId: string; move: string; votingRound: number },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId, move, votingRound } = data;
+    const userId = client.data.userId;
+    
+    // Record vote
+    const vote = await this.votingService.submitVote({
+      gameId,
+      userId,
+      move,
+      votingRound,
+    });
+    
+    // Get updated vote counts
+    const voteCounts = await this.votingService.getVoteCounts(gameId, votingRound);
+    
+    // Broadcast updated vote counts
+    this.server.to(`game:${gameId}`).emit('vote-update', {
+      votingRound,
+      voteCounts,
+      timestamp: new Date(),
+    });
+  }
+  
+  @SubscribeMessage('get-vote-status')
+  async handleGetVoteStatus(
+    @MessageBody() data: { gameId: string },
+    @ConnectedSocket() client: Socket,
+  ) {
+    const { gameId } = data;
+    const status = await this.votingService.getCurrentVotingStatus(gameId);
+    
+    client.emit('vote-status', status);
+  }
+}
+\end{lstlisting}
+
+\section{Frontend WebSocket Integration}
+
+\subsection{WebSocket Hook}
+
+\begin{lstlisting}[language=typescript]
+// hooks/useGameWebSocket.ts
+'use client';
+
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { io, Socket } from 'socket.io-client';
+
+interface GameWebSocketOptions {
+  gameId: string;
+  onMove?: (move: any) => void;
+  onGameUpdate?: (update: any) => void;
+  onChatMessage?: (message: any) => void;
+  onVoteUpdate?: (update: any) => void;
+}
+
+export function useGameWebSocket(options: GameWebSocketOptions) {
+  const [socket, setSocket] = useState<Socket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const optionsRef = useRef(options);
+  
+  useEffect(() => {
+    optionsRef.current = options;
+  }, [options]);
+  
+  useEffect(() => {
+    const newSocket = io(`${process.env.NEXT_PUBLIC_WS_URL}/games`, {
+      auth: {
+        token: localStorage.getItem('accessToken'),
+      },
+      transports: ['websocket'],
+    });
+    
+    newSocket.on('connect', () => {
+      setIsConnected(true);
+      newSocket.emit('join-game', { gameId: optionsRef.current.gameId });
+    });
+    
+    newSocket.on('disconnect', () => {
+      setIsConnected(false);
+    });
+    
+    newSocket.on('move-made', (data) => {
+      optionsRef.current.onMove?.(data);
+    });
+    
+    newSocket.on('game-update', (data) => {
+      optionsRef.current.onGameUpdate?.(data);
+    });
+    
+    newSocket.on('new-message', (data) => {
+      optionsRef.current.onChatMessage?.(data);
+    });
+    
+    newSocket.on('vote-update', (data) => {
+      optionsRef.current.onVoteUpdate?.(data);
+    });
+    
+    setSocket(newSocket);
+    
+    return () => {
+      newSocket.emit('leave-game', { gameId: optionsRef.current.gameId });
+      newSocket.close();
+    };
+  }, [options.gameId]);
+  
+  const makeMove = useCallback((move: string) => {
+    if (socket && isConnected) {
+      socket.emit('make-move', {
+        gameId: optionsRef.current.gameId,
+        move,
+      });
+    }
+  }, [socket, isConnected]);
+  
+  const sendChatMessage = useCallback((message: string) => {
+    if (socket && isConnected) {
+      socket.emit('send-message', {
+        gameId: optionsRef.current.gameId,
+        message,
+      });
+    }
+  }, [socket, isConnected]);
+  
+  return {
+    socket,
+    isConnected,
+    makeMove,
+    sendChatMessage,
+  };
+}
+\end{lstlisting}
+
+\subsection{Game Component Integration}
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useGameWebSocket } from '@/hooks/useGameWebSocket';
+import { useState } from 'react';
+
+export function GameView({ gameId }: { gameId: string }) {
+  const [gameState, setGameState] = useState(null);
+  const [moves, setMoves] = useState([]);
+  const [chatMessages, setChatMessages] = useState([]);
+  
+  const { isConnected, makeMove, sendChatMessage } = useGameWebSocket({
+    gameId,
+    onMove: (data) => {
+      setMoves(prev => [...prev, data.move]);
+      setGameState(data.gameState);
+    },
+    onGameUpdate: (update) => {
+      setGameState(update);
+    },
+    onChatMessage: (message) => {
+      setChatMessages(prev => [...prev, message]);
+    },
+  });
+  
+  const handleMove = (move: string) => {
+    makeMove(move);
+  };
+  
+  return (
+    <div>
+      {!isConnected && <div>Connecting...</div>}
+      <ChessBoard 
+        position={gameState?.currentFen}
+        onMove={handleMove}
+      />
+      <ChatWindow 
+        messages={chatMessages}
+        onSendMessage={sendChatMessage}
+      />
+    </div>
+  );
+}
+\end{lstlisting}
+
+\section{Message Types}
+
+\subsection{Game Events}
+
+\begin{itemize}
+    \item \textbf{join-game}: Join a game room
+    \item \textbf{leave-game}: Leave a game room
+    \item \textbf{make-move}: Submit a move
+    \item \textbf{move-made}: Broadcast move to all clients
+    \item \textbf{game-update}: Game state update
+    \item \textbf{game-finished}: Game completion
+    \item \textbf{draw-offered}: Draw offer notification
+    \item \textbf{resignation}: Resignation notification
+\end{itemize}
+
+\subsection{Chat Events}
+
+\begin{itemize}
+    \item \textbf{send-message}: Send chat message
+    \item \textbf{new-message}: Broadcast new message
+    \item \textbf{join-chat}: Join chat room
+    \item \textbf{user-joined}: User joined notification
+    \item \textbf{user-left}: User left notification
+\end{itemize}
+
+\subsection{Voting Events}
+
+\begin{itemize}
+    \item \textbf{submit-vote}: Submit a vote
+    \item \textbf{vote-update}: Vote count update
+    \item \textbf{vote-status}: Current voting status
+    \item \textbf{voting-started}: New voting round started
+    \item \textbf{voting-ended}: Voting round ended
+    \item \textbf{move-selected}: Winning move selected
+\end{itemize}
+
+\section{Connection Management}
+
+\subsection{Authentication}
+
+WebSocket connections are authenticated using JWT tokens:
+
+\begin{lstlisting}[language=typescript]
+// Backend authentication middleware
+@Injectable()
+export class WsJwtGuard implements CanActivate {
+  canActivate(context: ExecutionContext): boolean {
+    const client: Socket = context.switchToWs().getClient();
+    const token = client.handshake.auth.token;
+    
+    try {
+      const payload = jwt.verify(token, process.env.JWT_SECRET);
+      client.data.userId = payload.sub;
+      return true;
+    } catch {
+      return false;
+    }
+  }
+}
+\end{lstlisting}
+
+\subsection{Reconnection Logic}
+
+\begin{lstlisting}[language=typescript]
+// Frontend reconnection logic
+const reconnectAttempts = useRef(0);
+const maxReconnectAttempts = 5;
+
+useEffect(() => {
+  if (!isConnected && reconnectAttempts.current < maxReconnectAttempts) {
+    const timeout = setTimeout(() => {
+      reconnectAttempts.current++;
+      // Reconnect logic
+    }, Math.pow(2, reconnectAttempts.current) * 1000);
+    
+    return () => clearTimeout(timeout);
+  }
+}, [isConnected]);
+\end{lstlisting}
+
+\section{Performance Optimization}
+
+\subsection{Message Batching}
+
+Batch multiple updates into single messages:
+
+\begin{lstlisting}[language=typescript]
+// Backend batching
+private messageQueue: Map<string, any[]> = new Map();
+
+private batchMessages(gameId: string) {
+  const messages = this.messageQueue.get(gameId) || [];
+  if (messages.length > 0) {
+    this.server.to(`game:${gameId}`).emit('batch-update', messages);
+    this.messageQueue.set(gameId, []);
+  }
+}
+\end{lstlisting}
+
+\subsection{Connection Pooling}
+
+\begin{itemize}
+    \item Limit connections per user
+    \item Connection reuse
+    \item Efficient room management
+    \item Cleanup on disconnect
+\end{itemize}
+
+\section{Error Handling}
+
+\subsection{Error Events}
+
+\begin{lstlisting}[language=typescript]
+socket.on('error', (error) => {
+  console.error('WebSocket error:', error);
+  // Handle error
+});
+
+socket.on('connect_error', (error) => {
+  console.error('Connection error:', error);
+  // Retry connection
+});
+\end{lstlisting}
+
+\section{Deployment Considerations}
+
+\subsection{Vercel Serverless Functions}
+
+For Vercel deployment, WebSocket support may require:
+
+\begin{itemize}
+    \item External WebSocket service (e.g., Pusher, Ably)
+    \item Separate WebSocket server deployment
+    \item Edge functions for WebSocket connections
+\end{itemize}
+
+\subsection{Alternative: Server-Sent Events}
+
+For simpler real-time updates, consider SSE:
+
+\begin{lstlisting}[language=typescript]
+// Backend SSE endpoint
+@Get('events')
+@Sse('game-events')
+streamGameEvents(@Query('gameId') gameId: string) {
+  return new Observable((observer) => {
+    const subscription = this.gameService.subscribe(gameId, (update) => {
+      observer.next({ data: update });
+    });
+    
+    return () => subscription.unsubscribe();
+  });
+}
+\end{lstlisting}

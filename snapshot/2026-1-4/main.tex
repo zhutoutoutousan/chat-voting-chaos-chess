@@ -1,0 +1,63 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{datetime2}
+\usepackage{longtable}
+
+% Page setup
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Project Snapshot - Chat Voting Chaos Chess},
+    pdfauthor={Development Team},
+    pdfsubject={Current Project Status}
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false
+}
+
+% Title
+\title{Project Snapshot\\Chat Voting Chaos Chess Platform}
+\author{Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Overview}
+
+This document provides a comprehensive snapshot of the Chat Voting Chaos Chess platform as of \DTMnow. It captures the current state of the database schema, backend implementation, frontend implementation, functionality, and overall project status.
+
+\input{sections/01-project-status}
+\input{sections/02-database-schema}
+\input{sections/03-backend-status}
+\input{sections/04-frontend-status}
+\input{sections/05-functionality}
+\input{sections/06-deployment-status}
+\input{sections/07-next-steps}
+
+\end{document}

@@ -1,0 +1,149 @@
+\section{Stage 3: Rating System and WebSocket Implementation}
+\subsection{Planned Date}
+\DTMnow
+
+\subsection{Objective}
+Implement the ELO rating system with multiple rating types and set up WebSocket infrastructure for real-time game updates, chat, and voting.
+
+\subsection{Planned Tasks}
+
+\subsubsection{Rating System Implementation}
+\begin{enumerate}
+    \item Create Ratings Service
+    \begin{itemize}
+        \item ELO calculation logic
+        \item K-factor determination based on games played
+        \item Rating update after game completion
+        \item Support for multiple rating types (BLITZ, RAPID, CLASSICAL, etc.)
+        \item Peak rating tracking
+    \end{itemize}
+    \item Rating calculation formula
+    \begin{itemize}
+        \item Expected score: $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$
+        \item Rating change: $\Delta R = K \times (S - E)$
+        \item Where: $K$ = K-factor, $S$ = actual score, $E$ = expected score
+    \end{itemize}
+    \item K-factor logic
+    \begin{itemize}
+        \item New players (< 30 games): K = 40
+        \item Intermediate (30-100 games): K = 20
+        \item Established (> 100 games): K = 10
+    \end{itemize}
+    \item Rating endpoints
+    \begin{itemize}
+        \item GET \texttt{/api/v1/ratings/me} - Get user's ratings
+        \item GET \texttt{/api/v1/ratings/leaderboard} - Get leaderboard
+        \item GET \texttt{/api/v1/ratings/:userId/history} - Get rating history
+    \end{itemize}
+    \item Integration with game completion
+    \begin{itemize}
+        \item Update ratings when game finishes
+        \item Handle different time controls
+        \item Update appropriate rating type
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{WebSocket Infrastructure}
+\begin{enumerate}
+    \item Install and configure Socket.io
+    \begin{itemize}
+        \item Backend: \texttt{@nestjs/platform-socket.io}
+        \item Frontend: \texttt{socket.io-client}
+        \item Configure CORS for WebSocket
+        \item Set up authentication for WebSocket connections
+    \end{itemize}
+    \item Create WebSocket Gateway
+    \begin{itemize}
+        \item Game gateway for game-related events
+        \item Chat gateway for messaging
+        \item Voting gateway for chaos mode
+        \item Connection management
+        \item Room-based architecture
+    \end{itemize}
+    \item Game WebSocket Events
+    \begin{itemize}
+        \item \texttt{join-game} - Join game room
+        \item \texttt{leave-game} - Leave game room
+        \item \texttt{move-made} - Broadcast move to all clients
+        \item \texttt{game-update} - Game state changes
+        \item \texttt{game-finished} - Game completion
+        \item \texttt{time-update} - Clock updates
+    \end{itemize}
+    \item Chat WebSocket Events
+    \begin{itemize}
+        \item \texttt{join-chat} - Join chat room
+        \item \texttt{send-message} - Send chat message
+        \item \texttt{new-message} - Broadcast new message
+        \item \texttt{user-joined} - User joined notification
+        \item \texttt{user-left} - User left notification
+    \end{itemize}
+    \item Authentication for WebSocket
+    \begin{itemize}
+        \item JWT token in handshake
+        \item Validate token on connection
+        \item Attach user info to socket
+        \item Reject unauthorized connections
+    \end{itemize}
+    \item Frontend WebSocket Integration
+    \begin{itemize}
+        \item Create \texttt{useGameWebSocket} hook
+        \item Create \texttt{useChatWebSocket} hook
+        \item Handle reconnection logic
+        \item Manage connection state
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Real-time Game Updates}
+\begin{enumerate}
+    \item Integrate WebSocket with game service
+    \begin{itemize}
+        \item Emit events on game state changes
+        \item Broadcast moves to all spectators
+        \item Notify players of opponent moves
+        \item Update game clocks in real-time
+    \end{itemize}
+    \item Game room management
+    \begin{itemize}
+        \item Track connected users per game
+        \item Handle disconnections
+        \item Clean up on game end
+    \end{itemize}
+    \item Spectator support
+    \begin{itemize}
+        \item Allow spectators to join games
+        \item Broadcast to all connected users
+        \item Limit spectator actions
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Implementation Priority}
+
+\begin{enumerate}
+    \item \textbf{High Priority}:
+    \begin{itemize}
+        \item Rating system implementation
+        \item WebSocket gateway setup
+        \item Game real-time updates
+    \end{itemize}
+    
+    \item \textbf{Medium Priority}:
+    \begin{itemize}
+        \item Chat WebSocket
+        \item Frontend WebSocket hooks
+        \item Reconnection handling
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Success Criteria}
+
+\begin{itemize}
+    \item Ratings update correctly after games
+    \item Multiple rating types work independently
+    \item WebSocket connections established successfully
+    \item Real-time game updates broadcast to all clients
+    \item Chat messages delivered in real-time
+    \item Connection handling robust (reconnection, errors)
+\end{itemize}
+
+\subsection{Status}
+\fbox{\textbf{PLANNED}} - Ready to implement

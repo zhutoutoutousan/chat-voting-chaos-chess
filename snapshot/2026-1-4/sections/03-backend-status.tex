@@ -1,0 +1,164 @@
+\section{Backend Status}
+
+\subsection{Backend Framework}
+\begin{itemize}
+    \item \textbf{Framework}: Nest.js 10.3.0
+    \item \textbf{Language}: TypeScript
+    \item \textbf{API Style}: RESTful + WebSocket
+    \item \textbf{Base Path}: \texttt{/api/v1}
+    \item \textbf{Port}: 3001 (development)
+\end{itemize}
+
+\subsection{Backend Modules}
+
+\subsubsection{Core Modules}
+\begin{itemize}
+    \item \texttt{AppModule} - Root module
+    \item \texttt{DatabaseModule} - Prisma service (global)
+    \item \texttt{ConfigModule} - Environment configuration (global)
+\end{itemize}
+
+\subsubsection{Feature Modules}
+\begin{enumerate}
+    \item \textbf{AuthModule}
+    \begin{itemize}
+        \item JWT authentication
+        \item Registration endpoint
+        \item Login endpoint
+        \item Protected route guards
+        \item Password hashing (bcrypt)
+    \end{itemize}
+    
+    \item \textbf{UsersModule}
+    \begin{itemize}
+        \item Get user profile
+        \item Get user by ID
+        \item User information endpoints
+    \end{itemize}
+    
+    \item \textbf{GamesModule}
+    \begin{itemize}
+        \item Create game
+        \item Get games list
+        \item Get game details
+        \item Make move
+        \item Resign game
+        \item Offer/accept draw
+        \item GamesGateway (WebSocket) for real-time updates
+    \end{itemize}
+    
+    \item \textbf{ChessModule}
+    \begin{itemize}
+        \item Move validation
+        \item Move execution
+        \item Legal move generation
+        \item Position analysis
+        \item Game end detection
+        \item FEN parsing/generation
+        \item SAN notation conversion
+    \end{itemize}
+    
+    \item \textbf{RatingsModule}
+    \begin{itemize}
+        \item ELO calculation
+        \item Rating updates after games
+        \item Multiple rating types support
+        \item K-factor logic (40/20/10)
+        \item Get user ratings
+        \item Leaderboard
+        \item Rating history
+    \end{itemize}
+    
+    \item \textbf{VotingModule}
+    \begin{itemize}
+        \item Start voting round
+        \item Submit vote
+        \item Get voting status
+        \item End voting round
+        \item Vote aggregation (majority/percentage)
+        \item VotingGateway (WebSocket) for real-time updates
+    \end{itemize}
+    
+    \item \textbf{ChatModule}
+    \begin{itemize}
+        \item Send message
+        \item Get messages
+        \item Message validation
+        \item ChatGateway (WebSocket) for real-time chat
+    \end{itemize}
+    
+    \item \textbf{MatchmakingModule}
+    \begin{itemize}
+        \item Join queue
+        \item Leave queue
+        \item Get queue status
+        \item Rating-based matching
+    \end{itemize}
+\end{enumerate}
+
+\subsection{API Endpoints}
+
+\subsubsection{Authentication}
+\begin{itemize}
+    \item POST \texttt{/api/v1/auth/register} - Register new user
+    \item POST \texttt{/api/v1/auth/login} - Login user
+    \item GET \texttt{/api/v1/auth/me} - Get current user (protected)
+\end{itemize}
+
+\subsubsection{Games}
+\begin{itemize}
+    \item GET \texttt{/api/v1/games} - List games
+    \item GET \texttt{/api/v1/games/:id} - Get game details
+    \item POST \texttt{/api/v1/games} - Create game (protected)
+    \item POST \texttt{/api/v1/games/:id/moves} - Make move (protected)
+    \item POST \texttt{/api/v1/games/:id/resign} - Resign (protected)
+    \item POST \texttt{/api/v1/games/:id/draw-offer} - Offer draw (protected)
+    \item POST \texttt{/api/v1/games/:id/draw-accept} - Accept draw (protected)
+\end{itemize}
+
+\subsubsection{Ratings}
+\begin{itemize}
+    \item GET \texttt{/api/v1/ratings/me} - Get my ratings (protected)
+    \item GET \texttt{/api/v1/ratings/leaderboard} - Get leaderboard
+    \item GET \texttt{/api/v1/ratings/:userId/history} - Get rating history
+\end{itemize}
+
+\subsubsection{Voting}
+\begin{itemize}
+    \item POST \texttt{/api/v1/voting/games/:gameId/start} - Start voting (protected)
+    \item POST \texttt{/api/v1/voting/games/:gameId/vote} - Submit vote (protected)
+    \item GET \texttt{/api/v1/voting/games/:gameId/status} - Get status
+    \item POST \texttt{/api/v1/voting/games/:gameId/end} - End voting (protected)
+\end{itemize}
+
+\subsubsection{Chat}
+\begin{itemize}
+    \item GET \texttt{/api/v1/chat/games/:gameId/messages} - Get messages
+    \item POST \texttt{/api/v1/chat/games/:gameId/messages} - Send message (protected)
+\end{itemize}
+
+\subsubsection{Matchmaking}
+\begin{itemize}
+    \item POST \texttt{/api/v1/matchmaking/join} - Join queue (protected)
+    \item POST \texttt{/api/v1/matchmaking/leave} - Leave queue (protected)
+    \item GET \texttt{/api/v1/matchmaking/status} - Get status (protected)
+\end{itemize}
+
+\subsection{WebSocket Gateways}
+\begin{itemize}
+    \item \texttt{/games} - Game updates, moves, state changes
+    \item \texttt{/chat} - Real-time chat messages
+    \item \texttt{/voting} - Voting updates, vote counts
+\end{itemize}
+
+\subsection{Key Features}
+\begin{itemize}
+    \item JWT authentication with Passport.js
+    \item Global validation pipe (class-validator)
+    \item CORS enabled for frontend
+    \item Error handling
+    \item Type-safe database access (Prisma)
+    \item Real-time communication (Socket.io)
+    \item Automatic rating updates
+    \item Chess move validation
+\end{itemize}
