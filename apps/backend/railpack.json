@@ -30,6 +30,6 @@
         "include": ["apps/backend/dist", "apps/backend/node_modules", "apps/backend/package.json"]
       }
     ],
-    "startCommand": "cd apps/backend && node dist/main.js"
+    "startCommand": "node apps/backend/dist/main.js"
   }
 }

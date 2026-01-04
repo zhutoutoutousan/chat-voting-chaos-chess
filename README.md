@@ -151,9 +151,11 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 1. **Go to Vercel Dashboard** → Add New Project
 2. **Import your GitHub repository**
 3. **Configure in Dashboard:**
-   - **Root Directory**: Repository root (leave as default)
+   - **Root Directory**: **Repository root** (IMPORTANT: Must be repo root, not `apps/frontend`)
+     - Go to Settings → General → Root Directory
+     - Leave empty or set to `/` (repository root)
    - Framework will auto-detect Next.js from `apps/frontend`
-   - **Build Command**: `cd apps/frontend && pnpm build` (or use the one in `vercel.json`)
+   - Build Command is handled by `vercel.json` (builds packages first, then frontend)
 4. **Set Environment Variables:**
    ```
    NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api/v1
@@ -334,15 +336,20 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
   - **Cause**: Known bug in pnpm 6.x with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
   - **Solution**: 
-    - `vercel.json` now explicitly installs pnpm 8.15.0: `npm install -g pnpm@8.15.0 && pnpm install`
+    - `vercel.json` installs pnpm 8.15.0 before running install: `npm install -g pnpm@8.15.0 && pnpm install --shamefully-hoist`
+    - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to **repository root** (not `apps/frontend`)
     - Node.js is pinned to 22.x in `package.json` engines field
     - `packageManager: "pnpm@8.15.0"` is set in `package.json`
-    - If issues persist, ensure Vercel Project Settings → Node.js Version is set to 22.x
-- Check root directory is set to repository root in Dashboard
+    - If Vercel still uses old pnpm, check Root Directory setting in Dashboard
+- Check root directory is set to repository root in Dashboard (not apps/frontend)
 - Verify frontend builds: `cd apps/frontend && pnpm build`
 - Check build logs for specific errors
 
 ### Railway Deployment Issues
+- **"No start command was found" error**: 
+  - **Solution**: `apps/backend/railpack.json` has `startCommand: "node apps/backend/dist/main.js"` in deploy section
+  - Ensure Root Directory is set to `apps/backend` in Railway Dashboard → Settings → Source
+  - Railway should automatically detect the startCommand from railpack.json
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
   - **Cause**: Railway's Railpack auto-detects npm workspaces and uses `npm run build --workspace=...`
   - **Solution**: 
@@ -350,10 +357,9 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
     - Railway uses Railpack (not Nixpacks) - see [Railpack docs](https://docs.railway.com/reference/railpack)
     - The railpack.json build step should override npm workspace detection
     - **If Railway still uses npm for build**, manually set the Build Command in Railway Dashboard → Settings → Deploy:
-      - Use: `cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/backend build`
-    - Ensure Root Directory is set to `apps/backend` in Railway Dashboard → Settings → Source
+      - Use: `cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
 - Verify `DATABASE_URL` is set correctly
-- Check build command includes `pnpm db:generate`
+- Check build command includes `pnpm db:generate` and `pnpm --filter @chaos-chess/shared build`
 - Review Railway logs for errors
 - Ensure Prisma client is generated before build
 
