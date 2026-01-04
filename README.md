@@ -322,9 +322,13 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
   - **Cause**: Known bug in older pnpm versions with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
   - **Solution**: 
-    - `frontend/vercel.json` now uses `npm install` and `npm run build` instead of pnpm
+    - `frontend/vercel.json` now uses `npm install --include=dev` and `npm run build` instead of pnpm
     - This avoids the pnpm compatibility issues entirely
     - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to `frontend`
+- **"Cannot find module 'tailwindcss'" error**:
+  - **Cause**: Build-time dependencies (tailwindcss, postcss, autoprefixer) were in devDependencies
+  - **Solution**: These have been moved to dependencies in `frontend/package.json`
+  - Vercel installs with `--include=dev` flag to ensure devDependencies are installed during build
 - Check root directory is set to `frontend` in Dashboard
 - Verify frontend builds: `cd frontend && npm run build`
 - Check build logs for specific errors
@@ -340,6 +344,13 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
   - **Solution**: `backend/railpack.json` has `startCommand: "node dist/main.js"` in deploy section
   - Ensure Root Directory is set to `backend` in Railway Dashboard → Settings → Source
   - Railway should automatically detect the startCommand from railpack.json
+- **"No package.json found in /app" error**:
+  - **Cause**: Railway root directory might not be set correctly, or commands are running from wrong directory
+  - **Solution**: 
+    - Ensure Root Directory is set to exactly `backend` in Railway Dashboard → Settings → Source
+    - Verify that `backend/package.json` exists in your repository (it should be at the root of the backend folder)
+    - When Railway root directory is set to `backend`, the working directory should be `/app` which contains the backend files
+    - Check Railway build logs to see what directory commands are running from if the error persists
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
   - **Cause**: Railway's Railpack might auto-detect npm
   - **Solution**: 
