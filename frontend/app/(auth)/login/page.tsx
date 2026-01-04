@@ -1,23 +1,41 @@
 'use client';
 
 import { useState, FormEvent, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
 
+  // Get callback URL from query params, default to /games
+  const callbackUrl = searchParams.get('callbackUrl') || '/games';
+  const errorParam = searchParams.get('error');
+
+  // Show error from URL if present (e.g., from NextAuth redirect)
+  useEffect(() => {
+    if (errorParam) {
+      if (errorParam === 'Configuration') {
+        setError('Authentication configuration error. Please contact support.');
+      } else if (errorParam === 'CredentialsSignin') {
+        setError('Invalid credentials');
+      } else {
+        setError('Authentication failed. Please try again.');
+      }
+    }
+  }, [errorParam]);
+
   // Redirect if already logged in
   useEffect(() => {
     if (status === 'authenticated' && session) {
-      router.push('/games');
+      router.push(callbackUrl);
     }
-  }, [status, session, router]);
+  }, [status, session, router, callbackUrl]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -34,7 +52,9 @@ export default function LoginPage() {
       if (result?.error) {
         setError('Invalid credentials');
       } else if (result?.ok) {
-        router.push('/games');
+        // Small delay to ensure session is updated
+        await new Promise(resolve => setTimeout(resolve, 100));
+        router.push(callbackUrl);
         router.refresh(); // Refresh to update session
       }
     } catch (err: any) {
