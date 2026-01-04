@@ -1,0 +1,34 @@
+{
+  "$schema": "https://schema.railpack.com",
+  "provider": "node",
+  "packages": {
+    "node": "22"
+  },
+  "steps": {
+    "install": {
+      "commands": [
+        { "cmd": "cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate", "customName": "Setup pnpm 8.15.0" },
+        { "cmd": "cd ../.. && pnpm install", "customName": "Install dependencies" },
+        { "cmd": "cd ../.. && pnpm db:generate", "customName": "Generate Prisma client" }
+      ]
+    },
+    "build": {
+      "inputs": [{ "step": "install" }],
+      "commands": [
+        { "cmd": "cd ../.. && pnpm --filter @chaos-chess/backend build", "customName": "Build backend" }
+      ]
+    }
+  },
+  "deploy": {
+    "base": {
+      "image": "ghcr.io/railwayapp/railpack-runtime:latest"
+    },
+    "inputs": [
+      {
+        "step": "build",
+        "include": ["dist", "node_modules", "package.json"]
+      }
+    ],
+    "startCommand": "node dist/main.js"
+  }
+}
