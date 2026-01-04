@@ -345,12 +345,20 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
   - Ensure Root Directory is set to `backend` in Railway Dashboard → Settings → Source
   - Railway should automatically detect the startCommand from railpack.json
 - **"No package.json found in /app" error**:
-  - **Cause**: Railway root directory might not be set correctly, or commands are running from wrong directory
+  - **Cause**: Railway root directory setting might not be applied correctly, or there's a caching issue
   - **Solution**: 
-    - Ensure Root Directory is set to exactly `backend` in Railway Dashboard → Settings → Source
-    - Verify that `backend/package.json` exists in your repository (it should be at the root of the backend folder)
-    - When Railway root directory is set to `backend`, the working directory should be `/app` which contains the backend files
-    - Check Railway build logs to see what directory commands are running from if the error persists
+    - **Verify Root Directory**: Go to Railway Dashboard → Settings → Source → Root Directory
+      - It should be exactly `backend` (not `./backend`, not `/backend`, just `backend`)
+      - If it's already set, try clearing it, saving, then setting it again to `backend`
+    - **Clear Build Cache**: Go to Settings → Deploy → Clear Build Cache (or trigger a new deployment)
+    - **Check Debug Output**: The `railpack.json` now includes debug commands that will show:
+      - Current working directory (`pwd`)
+      - Files in `/app` (`ls -la`)
+      - Whether `package.json` exists
+    - **If `/app` is empty or doesn't contain backend files**: Railway isn't applying the root directory correctly
+      - Try deleting and recreating the service
+      - Or try setting root directory to `./backend` instead
+    - **Verify repository structure**: Ensure `backend/package.json` exists in your GitHub repository
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
   - **Cause**: Railway's Railpack might auto-detect npm
   - **Solution**: 

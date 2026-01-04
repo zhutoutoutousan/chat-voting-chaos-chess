@@ -7,9 +7,8 @@ import { ChatWindow } from '@/components/chat/ChatWindow';
 import { VotingPanel } from '@/components/voting/VotingPanel';
 import { GameControls } from '@/components/game/GameControls';
 import { GameClock } from '@/components/game/GameClock';
-import { gamesApi, votingApi } from '@/lib/api';
+import { gamesApi } from '@/lib/api';
 import { useGameWebSocket } from '@/hooks/useGameWebSocket';
-import { ChessService } from '@/lib/chess';
 
 export default function GamePage() {
   const params = useParams();
@@ -17,7 +16,7 @@ export default function GamePage() {
   const [game, setGame] = useState<any>(null);
   const [legalMoves, setLegalMoves] = useState<Array<{ from: string; to: string }>>([]);
   const [selectedSquare, setSelectedSquare] = useState<string | null>(null);
-  const [votingActive, setVotingActive] = useState(false);
+  const [votingActive] = useState(false);
   const [isWhiteTurn, setIsWhiteTurn] = useState(true);
   const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
 
@@ -60,7 +59,7 @@ export default function GamePage() {
         // This would require chess.js on frontend
         // For MVP, we'll leave it empty and let backend validate
         setLegalMoves([]);
-      } catch (error) {
+      } catch {
         setLegalMoves([]);
       }
     }

@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, FormEvent } from 'react';
 import { useChatWebSocket } from '@/hooks/useChatWebSocket';
 
 interface ChatMessage {
@@ -42,7 +42,7 @@ export function ChatWindow({ gameId, token }: ChatWindowProps) {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const handleSend = (e: React.FormEvent) => {
+  const handleSend = (e: FormEvent) => {
     e.preventDefault();
     if (input.trim() && isConnected) {
       sendMessage(input.trim());
