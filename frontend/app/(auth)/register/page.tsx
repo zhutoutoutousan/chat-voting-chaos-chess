@@ -1,11 +1,13 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
 import { authApi } from '@/lib/api';
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [formData, setFormData] = useState({
     email: '',
     username: '',
@@ -14,6 +16,13 @@ export default function RegisterPage() {
   });
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.push('/games');
+    }
+  }, [status, session, router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -34,6 +43,20 @@ export default function RegisterPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking session
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render register form if already authenticated
+  if (status === 'authenticated') {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">
