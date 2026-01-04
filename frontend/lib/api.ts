@@ -1,3 +1,5 @@
+import { getAuthToken } from './auth';
+
 const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
 
 export interface ApiError {
@@ -14,7 +16,7 @@ async function apiRequest<T>(
   endpoint: string,
   options?: RequestInit
 ): Promise<T> {
-  const token = typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+  const token = getAuthToken();
 
   const response = await fetch(`${API_BASE_URL}${endpoint}`, {
     ...options,

@@ -17,11 +17,6 @@ const authOptions: NextAuthOptions = {
 
         try {
           const result = await authApi.login(credentials.email, credentials.password);
-          
-          // Store token for API client
-          if (typeof window !== 'undefined') {
-            localStorage.setItem('token', result.access_token);
-          }
 
           return {
             id: result.user.id,

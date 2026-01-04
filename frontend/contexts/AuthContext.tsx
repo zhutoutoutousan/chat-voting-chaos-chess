@@ -1,7 +1,8 @@
 'use client';
 
-import { createContext, useContext, ReactNode } from 'react';
+import { createContext, useContext, ReactNode, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
+import { setAuthToken, clearAuthToken } from '@/lib/auth';
 
 interface User {
   id: string;
@@ -24,6 +25,15 @@ const AuthContext = createContext<AuthContextType>({
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const { data: session, status } = useSession();
+
+  // Sync token to localStorage when session changes
+  useEffect(() => {
+    if (session?.accessToken) {
+      setAuthToken(session.accessToken);
+    } else if (status === 'unauthenticated') {
+      clearAuthToken();
+    }
+  }, [session, status]);
 
   const value: AuthContextType = {
     user: session?.user
