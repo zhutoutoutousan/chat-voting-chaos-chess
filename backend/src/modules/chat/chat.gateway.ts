@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ChatService } from './chat.service';
+import { getCorsOrigins } from '../../shared/utils/cors.utils';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -17,7 +18,7 @@ interface AuthenticatedSocket extends Socket {
 @WebSocketGateway({
   namespace: '/chat',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: getCorsOrigins(),
     credentials: true,
   },
 })

@@ -8,9 +8,10 @@ import {
   ConnectedSocket,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
-import { UseGuards } from '@nestjs/common';
+import { UseGuards, Inject, forwardRef } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { GamesService } from './games.service';
+import { getCorsOrigins } from '../../shared/utils/cors.utils';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -20,7 +21,7 @@ interface AuthenticatedSocket extends Socket {
 @WebSocketGateway({
   namespace: '/games',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: getCorsOrigins(),
     credentials: true,
   },
 })
@@ -31,6 +32,7 @@ export class GamesGateway implements OnGatewayConnection, OnGatewayDisconnect {
   private gameRooms = new Map<string, Set<string>>(); // gameId -> Set of socketIds
 
   constructor(
+    @Inject(forwardRef(() => GamesService))
     private gamesService: GamesService,
     private jwtService: JwtService
   ) {}

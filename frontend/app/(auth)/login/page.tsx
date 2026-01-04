@@ -1,15 +1,23 @@
 'use client';
 
-import { useState, FormEvent } from 'react';
+import { useState, FormEvent, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn } from 'next-auth/react';
+import { signIn, useSession } from 'next-auth/react';
 
 export default function LoginPage() {
   const router = useRouter();
+  const { data: session, status } = useSession();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
+
+  // Redirect if already logged in
+  useEffect(() => {
+    if (status === 'authenticated' && session) {
+      router.push('/games');
+    }
+  }, [status, session, router]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -25,8 +33,9 @@ export default function LoginPage() {
 
       if (result?.error) {
         setError('Invalid credentials');
-      } else {
+      } else if (result?.ok) {
         router.push('/games');
+        router.refresh(); // Refresh to update session
       }
     } catch (err: any) {
       setError(err.message || 'Login failed');
@@ -34,6 +43,20 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  // Show loading state while checking session
+  if (status === 'loading') {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  // Don't render login form if already authenticated
+  if (status === 'authenticated') {
+    return null;
+  }
 
   return (
     <div className="flex items-center justify-center min-h-screen">

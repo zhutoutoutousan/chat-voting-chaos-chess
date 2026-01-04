@@ -8,6 +8,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { VotingService } from './voting.service';
+import { getCorsOrigins } from '../../shared/utils/cors.utils';
 
 interface AuthenticatedSocket extends Socket {
   userId?: string;
@@ -17,7 +18,7 @@ interface AuthenticatedSocket extends Socket {
 @WebSocketGateway({
   namespace: '/voting',
   cors: {
-    origin: process.env.FRONTEND_URL || 'http://localhost:3000',
+    origin: getCorsOrigins(),
     credentials: true,
   },
 })
