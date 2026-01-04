@@ -7,16 +7,16 @@
   "steps": {
     "install": {
       "commands": [
-        { "cmd": "cd ../.. && corepack enable && corepack prepare pnpm@8.15.1 --activate", "customName": "Setup pnpm 8.15.1" },
-        { "cmd": "cd ../.. && pnpm install", "customName": "Install dependencies" },
-        { "cmd": "cd ../.. && pnpm db:generate", "customName": "Generate Prisma client" }
+        { "cmd": "sh -c 'cd ../.. && corepack enable && corepack prepare --activate'", "customName": "Setup pnpm via corepack" },
+        { "cmd": "sh -c 'cd ../.. && pnpm install'", "customName": "Install dependencies" },
+        { "cmd": "sh -c 'cd ../.. && pnpm db:generate'", "customName": "Generate Prisma client" }
       ]
     },
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
-        { "cmd": "cd ../.. && pnpm --filter @chaos-chess/shared build", "customName": "Build shared package" },
-        { "cmd": "cd ../.. && pnpm --filter @chaos-chess/backend build", "customName": "Build backend with pnpm" }
+        { "cmd": "sh -c 'cd ../.. && pnpm --filter @chaos-chess/shared build'", "customName": "Build shared package" },
+        { "cmd": "sh -c 'cd ../.. && pnpm --filter @chaos-chess/backend build'", "customName": "Build backend with pnpm" }
       ]
     }
   },
