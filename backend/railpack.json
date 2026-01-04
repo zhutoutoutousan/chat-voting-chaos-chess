@@ -8,14 +8,14 @@
     "install": {
       "commands": [
         { "cmd": "npm install -g pnpm", "customName": "Install pnpm" },
-        { "cmd": "if [ -f package.json ]; then pnpm install; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm install; else echo 'ERROR: Cannot find package.json' && exit 1; fi", "customName": "Install dependencies" },
-        { "cmd": "if [ -f package.json ]; then pnpm prisma:generate; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm prisma:generate; else echo 'ERROR: Cannot find package.json for prisma generate' && exit 1; fi", "customName": "Generate Prisma client" }
+        { "cmd": "sh -c 'if [ -f package.json ]; then pnpm install; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm install; else echo \"ERROR: Cannot find package.json\" && exit 1; fi'", "customName": "Install dependencies" },
+        { "cmd": "sh -c 'if [ -f package.json ]; then pnpm prisma:generate; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm prisma:generate; else echo \"ERROR: Cannot find package.json for prisma generate\" && exit 1; fi'", "customName": "Generate Prisma client" }
       ]
     },
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
-        { "cmd": "if [ -f package.json ]; then pnpm build; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm build; else echo 'ERROR: Cannot find package.json for build' && exit 1; fi", "customName": "Build backend" }
+        { "cmd": "sh -c 'if [ -f package.json ]; then pnpm build; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm build; else echo \"ERROR: Cannot find package.json for build\" && exit 1; fi'", "customName": "Build backend" }
       ]
     }
   },
