@@ -15,6 +15,7 @@
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
+        { "cmd": "cd ../.. && pnpm --filter @chaos-chess/shared build", "customName": "Build shared package" },
         { "cmd": "cd ../.. && pnpm --filter @chaos-chess/backend build", "customName": "Build backend with pnpm" }
       ]
     }
