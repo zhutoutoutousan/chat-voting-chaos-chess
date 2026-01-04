@@ -7,7 +7,7 @@
   "steps": {
     "install": {
       "commands": [
-        { "cmd": "sh -c 'cd ../.. && corepack enable && corepack prepare --activate'", "customName": "Setup pnpm via corepack" },
+        { "cmd": "sh -c 'cd ../.. && npm install -g pnpm'", "customName": "Install pnpm" },
         { "cmd": "sh -c 'cd ../.. && pnpm install'", "customName": "Install dependencies" },
         { "cmd": "sh -c 'cd ../.. && pnpm db:generate'", "customName": "Generate Prisma client" }
       ]

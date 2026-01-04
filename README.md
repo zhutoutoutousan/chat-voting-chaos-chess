@@ -178,7 +178,7 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 3. **Select your repository**
 4. **Configure Service:**
    - **Root Directory**: `apps/backend` (IMPORTANT: Set this in Railway Dashboard → Settings → Source)
-   - **Build Command**: `cd ../.. && corepack enable && corepack prepare --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
+   - **Build Command**: `cd ../.. && npm install -g pnpm && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
      - **Note**: Set this in Railway Dashboard → Settings → Deploy → Build Command
      - This overrides auto-detection and ensures pnpm is used
    - **Start Command**: `node dist/main.js`
@@ -334,13 +334,13 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 
 ### Vercel Build Fails
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
-  - **Cause**: Known bug in pnpm 6.x with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
+  - **Cause**: Known bug in older pnpm versions with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
   - **Solution**: 
-    - `vercel.json` uses corepack to auto-detect pnpm version from `packageManager` field: `corepack enable && corepack prepare --activate && pnpm install`
-    - Corepack automatically uses the version specified in `package.json` (`packageManager: "pnpm@8.15.1"`)
+    - `vercel.json` uses `pnpm install` - Vercel auto-detects pnpm from `pnpm-lock.yaml`
+    - Vercel should use a compatible pnpm version automatically
     - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to **repository root** (not `apps/frontend`)
     - Node.js is pinned to 22.x in `package.json` engines field
-    - If Vercel still uses old pnpm, check Root Directory setting in Dashboard
+    - If issues persist, Vercel may need to update their default pnpm version
 - Check root directory is set to repository root in Dashboard (not apps/frontend)
 - Verify frontend builds: `cd apps/frontend && pnpm build`
 - Check build logs for specific errors
@@ -353,11 +353,11 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
   - **Cause**: Railway's Railpack auto-detects npm workspaces and uses `npm run build --workspace=...`
   - **Solution**: 
-    - `apps/backend/railpack.json` uses corepack to auto-detect pnpm version from `packageManager` field
+    - `apps/backend/railpack.json` installs pnpm globally, then uses it for the build
     - Railway uses Railpack (not Nixpacks) - see [Railpack docs](https://docs.railway.com/reference/railpack)
     - The railpack.json build step should override npm workspace detection
     - **If Railway still uses npm for build**, manually set the Build Command in Railway Dashboard → Settings → Deploy:
-      - Use: `cd ../.. && corepack enable && corepack prepare --activate && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
+      - Use: `cd ../.. && npm install -g pnpm && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
 - Verify `DATABASE_URL` is set correctly
 - Check build command includes `pnpm db:generate` and `pnpm --filter @chaos-chess/shared build`
 - Review Railway logs for errors
