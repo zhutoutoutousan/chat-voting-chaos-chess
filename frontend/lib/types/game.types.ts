@@ -45,6 +45,7 @@ export interface Move {
   timeSpent: number | null;
 }
 
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export enum GameStatus {
   WAITING = 'WAITING',
   IN_PROGRESS = 'IN_PROGRESS',
@@ -52,9 +53,11 @@ export enum GameStatus {
   ABANDONED = 'ABANDONED',
   DRAW_OFFERED = 'DRAW_OFFERED',
 }
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */
 
 export type GameStatusType = keyof typeof GameStatus;
 
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export enum GameResult {
   WHITE_WINS = 'WHITE_WINS',
   BLACK_WINS = 'BLACK_WINS',
@@ -69,5 +72,6 @@ export enum GameResult {
   THREEFOLD_REPETITION = 'THREEFOLD_REPETITION',
   FIFTY_MOVE_RULE = 'FIFTY_MOVE_RULE',
 }
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */
 
 export type GameResultType = keyof typeof GameResult;

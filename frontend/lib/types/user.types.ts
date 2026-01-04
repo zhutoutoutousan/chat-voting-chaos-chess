@@ -42,6 +42,7 @@ export interface Rating {
   peakRatingDate: Date | null;
 }
 
+/* eslint-disable no-unused-vars, @typescript-eslint/no-unused-vars */
 export enum RatingType {
   OVERALL = 'OVERALL',
   BLITZ = 'BLITZ',
@@ -51,3 +52,4 @@ export enum RatingType {
   PUZZLE = 'PUZZLE',
   CHAOS = 'CHAOS',
 }
+/* eslint-enable no-unused-vars, @typescript-eslint/no-unused-vars */

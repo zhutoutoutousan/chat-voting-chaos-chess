@@ -4,10 +4,10 @@ import { useState, useEffect } from 'react';
 
 interface ChessBoardProps {
   fen: string;
-  onMove?: (from: string, to: string) => void;
+  onMove?: (_from: string, _to: string) => void;
   legalMoves?: Array<{ from: string; to: string }>;
   selectedSquare?: string | null;
-  onSquareClick?: (square: string) => void;
+  onSquareClick?: (_square: string) => void;
 }
 
 const FILES = ['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'];
@@ -38,18 +38,18 @@ export function ChessBoard({
 
     for (let rank = 0; rank < 8; rank++) {
       const row: Array<string | null> = [];
-      let file = 0;
+      let _file = 0;
 
       for (const char of rows[rank]) {
         if (char >= '1' && char <= '8') {
           const emptySquares = parseInt(char);
           for (let i = 0; i < emptySquares; i++) {
             row.push(null);
-            file++;
+            _file++;
           }
         } else {
           row.push(char);
-          file++;
+          _file++;
         }
       }
 

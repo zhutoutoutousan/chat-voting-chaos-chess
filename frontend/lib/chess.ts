@@ -8,7 +8,7 @@ export class ChessService {
     return parts[1] === 'w' ? 'white' : 'black';
   }
 
-  static isGameOver(fen: string): boolean {
+  static isGameOver(_fen: string): boolean {
     // Simplified - full implementation would use chess.js
     return false;
   }

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { useVotingWebSocket } from '@/hooks/useVotingWebSocket';
-import { votingApi } from '@/lib/api';
 
 interface MoveOption {
   id: number;
@@ -39,7 +38,7 @@ export function VotingPanel({ gameId, token, isActive }: VotingPanelProps) {
     onVoteUpdate: (data) => {
       setOptions(data.voteCounts);
     },
-    onVotingEnded: (data) => {
+    onVotingEnded: (_data) => {
       setOptions([]);
       setTimeRemaining(0);
     },
