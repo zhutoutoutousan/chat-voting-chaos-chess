@@ -7,16 +7,15 @@
   "steps": {
     "install": {
       "commands": [
-        { "cmd": "sh -c 'cd ../.. && npm install -g pnpm'", "customName": "Install pnpm" },
-        { "cmd": "sh -c 'cd ../.. && pnpm install'", "customName": "Install dependencies" },
-        { "cmd": "sh -c 'cd ../.. && pnpm db:generate'", "customName": "Generate Prisma client" }
+        { "cmd": "npm install -g pnpm", "customName": "Install pnpm" },
+        { "cmd": "pnpm install", "customName": "Install dependencies" },
+        { "cmd": "pnpm prisma:generate", "customName": "Generate Prisma client" }
       ]
     },
     "build": {
       "inputs": [{ "step": "install" }],
       "commands": [
-        { "cmd": "sh -c 'cd ../.. && pnpm --filter @chaos-chess/shared build'", "customName": "Build shared package" },
-        { "cmd": "sh -c 'cd ../.. && pnpm --filter @chaos-chess/backend build'", "customName": "Build backend with pnpm" }
+        { "cmd": "pnpm build", "customName": "Build backend" }
       ]
     }
   },
@@ -27,9 +26,9 @@
     "inputs": [
       {
         "step": "build",
-        "include": ["apps/backend/dist", "apps/backend/node_modules", "apps/backend/package.json"]
+        "include": ["dist", "node_modules", "package.json"]
       }
     ],
-    "startCommand": "node apps/backend/dist/main.js"
+    "startCommand": "node dist/main.js"
   }
 }

@@ -11,19 +11,21 @@ A comprehensive chess platform with interactive chat voting chaos mode, built wi
 - **Payments**: Stripe (ready for integration)
 - **Real-time**: WebSocket (Socket.io)
 - **Chess Engine**: chess.js
-- **Monorepo**: pnpm workspaces (frontend and backend are independent)
+- **Structure**: Frontend and backend are independent applications in the same repository
 
 ## Project Structure
 
 ```
 chat-voting-chaos-chess/
 ├── apps/
-│   ├── frontend/          # Next.js application
-│   └── backend/           # Nest.js application
-├── packages/
-│   ├── shared/            # Shared TypeScript types and utilities
-│   ├── prisma/            # Prisma schema and migrations
-│   └── ui/                # Shared UI components (placeholder)
+│   ├── frontend/          # Next.js application (independent)
+│   │   ├── lib/           # Shared types, constants, utils
+│   │   └── ...
+│   └── backend/           # Nest.js application (independent)
+│       ├── prisma/        # Prisma schema and migrations
+│       ├── src/
+│       │   └── shared/    # Shared types, constants, utils
+│       └── ...
 ├── spec/                  # Technical specification (LaTeX)
 ├── journal/               # Development journal (LaTeX)
 └── snapshot/              # Project snapshot (LaTeX)
@@ -47,15 +49,14 @@ chat-voting-chaos-chess/
 
 2. **Install dependencies:**
    ```bash
-   pnpm install
+   # Install frontend dependencies
+   cd apps/frontend && pnpm install && cd ../..
+
+   # Install backend dependencies
+   cd apps/backend && pnpm install && cd ../..
    ```
 
 3. **Set up environment variables:**
-
-   Create `packages/prisma/.env`:
-   ```env
-   DATABASE_URL="your-supabase-connection-string"
-   ```
 
    Create `apps/backend/.env`:
    ```env
@@ -75,73 +76,62 @@ chat-voting-chaos-chess/
 
 4. **Set up database:**
    ```bash
+   cd apps/backend
+
    # Generate Prisma client
-   pnpm db:generate
+   pnpm prisma:generate
 
    # Run migrations
-   pnpm db:migrate
+   pnpm prisma:migrate
 
-   # (Optional) Seed database
-   cd packages/prisma && pnpm seed
+   # (Optional) Open Prisma Studio
+   pnpm prisma:studio
    ```
 
-5. **Build packages (required before running apps):**
+5. **Start development servers:**
    ```bash
-   # Build packages (Prisma client + shared package)
-   pnpm build:packages
-   ```
+   # Start frontend (in one terminal)
+   cd apps/frontend && pnpm dev
 
-6. **Start development servers:**
-   ```bash
-   # Start frontend (automatically builds packages first)
-   pnpm dev:frontend
-
-   # Start backend (automatically builds packages first)
-   pnpm dev:backend
+   # Start backend (in another terminal)
+   cd apps/backend && pnpm dev
    ```
 
 ## Available Scripts
 
-### Development
-- `pnpm dev:frontend` - Start frontend dev server (builds packages first)
-- `pnpm dev:backend` - Start backend dev server (builds packages first)
-- `pnpm build:packages` - Build shared packages (Prisma client + shared TypeScript)
+### Frontend (apps/frontend)
+- `pnpm dev` - Start development server
+- `pnpm build` - Build for production
+- `pnpm start` - Start production server
+- `pnpm lint` - Lint code
 
-### Building
-- `pnpm build:frontend` - Build frontend for production (builds packages first)
-- `pnpm build:backend` - Build backend for production (builds packages first)
-
-### Database
-- `pnpm db:generate` - Generate Prisma client
-- `pnpm db:migrate` - Run database migrations (dev)
-- `pnpm db:migrate:deploy` - Deploy migrations (production)
-- `pnpm db:reset` - Reset database (WARNING: deletes all data)
-- `pnpm db:setup` - First-time database setup
-- `pnpm db:studio` - Open Prisma Studio
-
-### Utilities
-- `pnpm format` - Format code with Prettier
+### Backend (apps/backend)
+- `pnpm dev` - Start development server (auto-generates Prisma client)
+- `pnpm build` - Build for production (generates Prisma client first)
+- `pnpm start` - Start production server
+- `pnpm prisma:generate` - Generate Prisma client
+- `pnpm prisma:migrate` - Run database migrations (dev)
+- `pnpm prisma:migrate:deploy` - Deploy migrations (production)
+- `pnpm prisma:studio` - Open Prisma Studio
 
 ## Database Management
 
-### Reset Database
+All database operations are done from `apps/backend`:
 
-**Windows PowerShell:**
-```powershell
-cd packages/prisma
-powershell -ExecutionPolicy Bypass -File reset-db.ps1
-```
-
-**Or from root:**
 ```bash
-pnpm db:reset
-```
+cd apps/backend
 
-### First Time Setup
+# Generate Prisma client
+pnpm prisma:generate
 
-```powershell
-cd packages/prisma
-powershell -ExecutionPolicy Bypass -File setup-db.ps1
+# Run migrations
+pnpm prisma:migrate
+
+# Deploy migrations (production)
+pnpm prisma:migrate:deploy
+
+# Open Prisma Studio
+pnpm prisma:studio
 ```
 
 ## Deployment
@@ -151,11 +141,9 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 1. **Go to Vercel Dashboard** → Add New Project
 2. **Import your GitHub repository**
 3. **Configure in Dashboard:**
-   - **Root Directory**: **Repository root** (IMPORTANT: Must be repo root, not `apps/frontend`)
-     - Go to Settings → General → Root Directory
-     - Leave empty or set to `/` (repository root)
-   - Framework will auto-detect Next.js from `apps/frontend`
-   - Build Command is handled by `vercel.json` (builds packages first, then frontend)
+   - **Root Directory**: `apps/frontend` (set in Vercel Dashboard → Settings → General)
+   - Framework will auto-detect Next.js
+   - Build Command: `pnpm build` (configured in `apps/frontend/vercel.json`)
 4. **Set Environment Variables:**
    ```
    NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api/v1
@@ -167,7 +155,7 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
    ```
 5. **Deploy!**
 
-**Note**: The `vercel.json` automatically builds the frontend. The build command navigates to `apps/frontend` and runs `pnpm build`.
+**Note**: Vercel will automatically detect Next.js and run `pnpm build` in the `apps/frontend` directory.
 
 ### Backend Deployment (Railway)
 
@@ -178,11 +166,8 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 3. **Select your repository**
 4. **Configure Service:**
    - **Root Directory**: `apps/backend` (IMPORTANT: Set this in Railway Dashboard → Settings → Source)
-   - **Build Command**: `cd ../.. && npm install -g pnpm && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
-     - **Note**: Set this in Railway Dashboard → Settings → Deploy → Build Command
-     - This overrides auto-detection and ensures pnpm is used
-   - **Start Command**: `node dist/main.js`
-     - Set in Railway Dashboard → Settings → Deploy → Start Command
+   - Build and Start commands are handled by `railpack.json` automatically
+   - Railway will use Railpack to build (installs pnpm, generates Prisma client, builds backend)
 5. **Set Environment Variables:**
    ```
    DATABASE_URL=your-supabase-connection-string
@@ -205,19 +190,18 @@ powershell -ExecutionPolicy Bypass -File setup-db.ps1
 
 ## Architecture
 
-### Monorepo Structure
+### Project Structure
 
-This project uses a pnpm workspace monorepo:
-- **Independent builds**: Frontend and backend build independently
-- **Shared packages**: Common code in `packages/shared` and `packages/prisma`
-  - `packages/shared`: TypeScript types and utilities (needs to be built with `tsc`)
-  - `packages/prisma`: Prisma schema and client (needs `prisma generate`)
-- **Build order**: Packages must be built before apps:
-  1. `pnpm db:generate` - Generate Prisma client
-  2. `pnpm --filter @chaos-chess/shared build` - Build shared package
-  3. Build frontend or backend
-- **Workspace protocol**: Packages reference each other using `workspace:*`
+This project has two independent applications in the same repository:
+- **Frontend** (`apps/frontend`): Next.js application with its own dependencies
+  - Shared code in `apps/frontend/lib/` (types, constants, utils)
+  - No build step needed for shared code (TypeScript is transpiled by Next.js)
+- **Backend** (`apps/backend`): Nest.js application with its own dependencies
+  - Prisma schema in `apps/backend/prisma/`
+  - Shared code in `apps/backend/src/shared/` (types, constants, utils)
+  - Prisma client is generated during build (`pnpm build` runs `prisma generate` first)
 - **Single repository**: Keeps everything together for easier AI IDE assistance
+- **No monorepo tools**: Each app is completely independent
 
 ### Backend Limitations on Vercel
 
@@ -327,10 +311,9 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 - Ensure backend is running
 
 ### Build Issues
-- Run `pnpm db:generate` first
-- Clear `.next` and `dist` folders
-- Reinstall dependencies: `pnpm install`
-- Ensure `pnpm install` runs from repository root
+- **Frontend**: Clear `.next` folder and reinstall: `cd apps/frontend && rm -rf .next && pnpm install`
+- **Backend**: Generate Prisma client first: `cd apps/backend && pnpm prisma:generate`
+- Clear `dist` folders and reinstall dependencies in each app directory
 
 ### Vercel Build Fails
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
@@ -338,30 +321,28 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
   - **Solution**: 
     - `vercel.json` uses `pnpm install` - Vercel auto-detects pnpm from `pnpm-lock.yaml`
     - Vercel should use a compatible pnpm version automatically
-    - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to **repository root** (not `apps/frontend`)
-    - Node.js is pinned to 22.x in `package.json` engines field
+    - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to `apps/frontend`
+    - Node.js is pinned to 22.x in `apps/frontend/package.json` engines field
     - If issues persist, Vercel may need to update their default pnpm version
-- Check root directory is set to repository root in Dashboard (not apps/frontend)
+- Check root directory is set to `apps/frontend` in Dashboard
 - Verify frontend builds: `cd apps/frontend && pnpm build`
 - Check build logs for specific errors
 
 ### Railway Deployment Issues
 - **"No start command was found" error**: 
-  - **Solution**: `apps/backend/railpack.json` has `startCommand: "node apps/backend/dist/main.js"` in deploy section
+  - **Solution**: `apps/backend/railpack.json` has `startCommand: "node dist/main.js"` in deploy section
   - Ensure Root Directory is set to `apps/backend` in Railway Dashboard → Settings → Source
   - Railway should automatically detect the startCommand from railpack.json
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
-  - **Cause**: Railway's Railpack auto-detects npm workspaces and uses `npm run build --workspace=...`
+  - **Cause**: Railway's Railpack might auto-detect npm
   - **Solution**: 
     - `apps/backend/railpack.json` installs pnpm globally, then uses it for the build
     - Railway uses Railpack (not Nixpacks) - see [Railpack docs](https://docs.railway.com/reference/railpack)
-    - The railpack.json build step should override npm workspace detection
-    - **If Railway still uses npm for build**, manually set the Build Command in Railway Dashboard → Settings → Deploy:
-      - Use: `cd ../.. && npm install -g pnpm && pnpm install && pnpm db:generate && pnpm --filter @chaos-chess/shared build && pnpm --filter @chaos-chess/backend build`
+    - The railpack.json should handle everything automatically
 - Verify `DATABASE_URL` is set correctly
-- Check build command includes `pnpm db:generate` and `pnpm --filter @chaos-chess/shared build`
+- Check build command includes `pnpm prisma:generate` (handled by `pnpm build` script)
 - Review Railway logs for errors
-- Ensure Prisma client is generated before build
+- Ensure Prisma client is generated before build (build script handles this)
 
 ## Documentation
 

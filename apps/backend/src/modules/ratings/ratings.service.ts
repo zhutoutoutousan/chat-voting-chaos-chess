@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
-import { RatingType } from '@chaos-chess/shared';
-import { calculateEloChange } from '@chaos-chess/shared';
+import { RatingType } from '../../shared/types';
+import { calculateEloChange } from '../../shared/utils';
 
 interface RatingUpdateResult {
   whiteRating: {
