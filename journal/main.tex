@@ -1,0 +1,64 @@
+\documentclass[11pt,a4paper]{article}
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{geometry}
+\usepackage{graphicx}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{amsmath}
+\usepackage{booktabs}
+\usepackage{datetime2}
+
+% Page setup
+\geometry{margin=1in}
+\hypersetup{
+    colorlinks=true,
+    linkcolor=blue,
+    filecolor=magenta,      
+    urlcolor=cyan,
+    pdftitle={Development Journal - Chat Voting Chaos Chess},
+    pdfauthor={Development Team},
+    pdfsubject={Development Progress Tracking}
+}
+
+% Code listing setup
+\lstset{
+    basicstyle=\ttfamily\small,
+    breaklines=true,
+    frame=single,
+    numbers=left,
+    numberstyle=\tiny\color{gray},
+    keywordstyle=\color{blue},
+    commentstyle=\color{green!60!black},
+    stringstyle=\color{red},
+    showstringspaces=false
+}
+
+% Title
+\title{Development Journal\\Chat Voting Chaos Chess Platform}
+\author{Development Team}
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+\tableofcontents
+\newpage
+
+\section{Overview}
+
+This journal documents the development progress of the Chat Voting Chaos Chess Platform. Each stage represents a milestone in the development process, with detailed documentation of what was accomplished and what comes next.
+
+\input{stages/stage-01-initial-setup}
+\input{stages/stage-02-next-steps}
+\input{stages/stage-02-progress}
+\input{stages/stage-03-rating-websocket}
+\input{stages/stage-03-progress}
+\input{stages/stage-04-chaos-frontend}
+\input{stages/stage-04-progress}
+\input{stages/stage-05-next}
+\input{stages/stage-05-progress}
+
+\end{document}

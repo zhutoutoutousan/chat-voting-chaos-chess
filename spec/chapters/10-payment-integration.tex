@@ -1,0 +1,450 @@
+\chapter{Payment Integration}
+
+\section{Overview}
+
+The platform integrates Stripe for payment processing, subscription management, and premium feature access. This chapter details the complete payment integration architecture.
+
+\section{Stripe Configuration}
+
+\subsection{Account Setup}
+
+\begin{itemize}
+    \item \textbf{Stripe Account}: Business account creation
+    \item \textbf{API Keys}: Separate keys for development and production
+    \item \textbf{Webhook Endpoints}: Configured for event handling
+    \item \textbf{Products \& Prices}: Subscription tiers defined in Stripe Dashboard
+\end{itemize}
+
+\subsection{Environment Variables}
+
+\begin{lstlisting}[language=bash]
+# Stripe Configuration
+STRIPE_SECRET_KEY=sk_test_...
+STRIPE_PUBLISHABLE_KEY=pk_test_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+STRIPE_PRICE_ID_PREMIUM=price_...
+STRIPE_PRICE_ID_DIAMOND=price_...
+\end{lstlisting}
+
+\section{Subscription Tiers}
+
+\subsection{Tier Definitions}
+
+\begin{table}[H]
+    \centering
+    \begin{tabular}{lll}
+        \toprule
+        Tier & Price & Features \\
+        \midrule
+        Free & \$0 & Basic features, limited analysis \\
+        Premium & \$9.99/month & Unlimited analysis, advanced stats \\
+        Diamond & \$19.99/month & All features, exclusive content \\
+        \bottomrule
+    \end{tabular}
+    \caption{Subscription Tiers}
+    \label{tab:subscription-tiers}
+\end{table}
+
+\subsection{Feature Matrix}
+
+\begin{itemize}
+    \item \textbf{Free Tier}:
+    \begin{itemize}
+        \item Basic game play
+        \item Limited engine analysis (10 per day)
+        \item Basic statistics
+        \item Access to free academy content
+    \end{itemize}
+    \item \textbf{Premium Tier}:
+    \begin{itemize}
+        \item Unlimited engine analysis
+        \item Advanced statistics and analytics
+        \item All academy courses
+        \item Ad-free experience
+        \item Priority customer support
+    \end{itemize}
+    \item \textbf{Diamond Tier}:
+    \begin{itemize}
+        \item All Premium features
+        \item Exclusive tournaments
+        \item Early access to new features
+        \item Custom themes
+        \item Increased vote weight in chaos mode
+    \end{itemize}
+\end{itemize}
+
+\section{Frontend Integration}
+
+\subsection{Stripe.js Setup}
+
+\begin{lstlisting}[language=typescript]
+// lib/stripe.ts
+import { loadStripe } from '@stripe/stripe-js';
+
+export const stripePromise = loadStripe(
+  process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!
+);
+\end{lstlisting}
+
+\subsection{Checkout Flow}
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useState } from 'react';
+import { loadStripe } from '@stripe/stripe-js';
+
+export function SubscriptionButton({ tier }: { tier: 'PREMIUM' | 'DIAMOND' }) {
+  const [loading, setLoading] = useState(false);
+  
+  const handleSubscribe = async () => {
+    setLoading(true);
+    
+    try {
+      // Create checkout session
+      const response = await fetch('/api/payments/create-checkout', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          tier,
+          successUrl: `${window.location.origin}/dashboard/settings?success=true`,
+          cancelUrl: `${window.location.origin}/dashboard/settings?canceled=true`,
+        }),
+      });
+      
+      const { sessionId, url } = await response.json();
+      
+      // Redirect to Stripe Checkout
+      const stripe = await loadStripe(process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY!);
+      await stripe?.redirectToCheckout({ sessionId });
+    } catch (error) {
+      console.error('Error:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  return (
+    <button onClick={handleSubscribe} disabled={loading}>
+      {loading ? 'Processing...' : `Subscribe to ${tier}`}
+    </button>
+  );
+}
+\end{lstlisting}
+
+\section{Backend Integration}
+
+\subsection{Stripe Service}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/payments/stripe.service.ts
+import { Injectable } from '@nestjs/common';
+import Stripe from 'stripe';
+
+@Injectable()
+export class StripeService {
+  private stripe: Stripe;
+  
+  constructor() {
+    this.stripe = new Stripe(process.env.STRIPE_SECRET_KEY, {
+      apiVersion: '2023-10-16',
+    });
+  }
+  
+  async createCheckoutSession(
+    customerId: string,
+    priceId: string,
+    successUrl: string,
+    cancelUrl: string,
+  ): Promise<Stripe.Checkout.Session> {
+    return this.stripe.checkout.sessions.create({
+      customer: customerId,
+      payment_method_types: ['card'],
+      line_items: [
+        {
+          price: priceId,
+          quantity: 1,
+        },
+      ],
+      mode: 'subscription',
+      success_url: successUrl,
+      cancel_url: cancelUrl,
+      metadata: {
+        userId: customerId,
+      },
+    });
+  }
+  
+  async createCustomer(email: string, userId: string): Promise<Stripe.Customer> {
+    return this.stripe.customers.create({
+      email,
+      metadata: {
+        userId,
+      },
+    });
+  }
+  
+  async cancelSubscription(subscriptionId: string): Promise<Stripe.Subscription> {
+    return this.stripe.subscriptions.update(subscriptionId, {
+      cancel_at_period_end: true,
+    });
+  }
+}
+\end{lstlisting}
+
+\subsection{Payment Controller}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/payments/payments.controller.ts
+import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
+import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
+import { PaymentsService } from './payments.service';
+
+@Controller('payments')
+@UseGuards(JwtAuthGuard)
+export class PaymentsController {
+  constructor(private paymentsService: PaymentsService) {}
+  
+  @Post('create-checkout')
+  async createCheckout(
+    @Request() req,
+    @Body() body: { tier: string; successUrl: string; cancelUrl: string },
+  ) {
+    const session = await this.paymentsService.createCheckoutSession(
+      req.user.userId,
+      body.tier,
+      body.successUrl,
+      body.cancelUrl,
+    );
+    
+    return {
+      sessionId: session.id,
+      url: session.url,
+    };
+  }
+  
+  @Get('subscription')
+  async getSubscription(@Request() req) {
+    return this.paymentsService.getUserSubscription(req.user.userId);
+  }
+  
+  @Post('cancel-subscription')
+  async cancelSubscription(@Request() req) {
+    return this.paymentsService.cancelSubscription(req.user.userId);
+  }
+}
+\end{lstlisting}
+
+\section{Webhook Handling}
+
+\subsection{Webhook Endpoint}
+
+\begin{lstlisting}[language=typescript]
+// src/modules/payments/payments.controller.ts
+import { Controller, Post, Body, Headers, RawBodyRequest } from '@nestjs/common';
+
+@Controller('payments')
+export class PaymentsController {
+  @Post('webhook')
+  async handleWebhook(
+    @Body() body: any,
+    @Headers('stripe-signature') signature: string,
+  ) {
+    const event = this.stripeService.constructWebhookEvent(
+      body,
+      signature,
+      process.env.STRIPE_WEBHOOK_SECRET,
+    );
+    
+    switch (event.type) {
+      case 'checkout.session.completed':
+        await this.handleCheckoutCompleted(event.data.object);
+        break;
+      case 'customer.subscription.created':
+      case 'customer.subscription.updated':
+        await this.handleSubscriptionUpdate(event.data.object);
+        break;
+      case 'customer.subscription.deleted':
+        await this.handleSubscriptionDeleted(event.data.object);
+        break;
+      case 'invoice.payment_succeeded':
+        await this.handlePaymentSucceeded(event.data.object);
+        break;
+      case 'invoice.payment_failed':
+        await this.handlePaymentFailed(event.data.object);
+        break;
+    }
+    
+    return { received: true };
+  }
+  
+  private async handleCheckoutCompleted(session: Stripe.Checkout.Session) {
+    const userId = session.metadata.userId;
+    const subscriptionId = session.subscription as string;
+    
+    // Update user subscription in database
+    await this.paymentsService.activateSubscription(
+      userId,
+      subscriptionId,
+      session.customer as string,
+    );
+  }
+  
+  private async handleSubscriptionUpdate(subscription: Stripe.Subscription) {
+    const userId = subscription.metadata.userId;
+    const status = subscription.status;
+    const tier = this.getTierFromPriceId(subscription.items.data[0].price.id);
+    
+    await this.paymentsService.updateSubscriptionStatus(
+      userId,
+      status,
+      tier,
+    );
+  }
+  
+  private async handleSubscriptionDeleted(subscription: Stripe.Subscription) {
+    const userId = subscription.metadata.userId;
+    await this.paymentsService.deactivateSubscription(userId);
+  }
+}
+\end{lstlisting}
+
+\section{Database Integration}
+
+\subsection{Subscription Model Updates}
+
+The subscription is stored in the database and synced with Stripe:
+
+\begin{lstlisting}[language=typescript]
+// src/modules/payments/payments.service.ts
+async activateSubscription(
+  userId: string,
+  stripeSubscriptionId: string,
+  stripeCustomerId: string,
+) {
+  const subscription = await this.stripeService.getSubscription(stripeSubscriptionId);
+  const priceId = subscription.items.data[0].price.id;
+  const tier = this.getTierFromPriceId(priceId);
+  
+  await this.prisma.subscription.upsert({
+    where: { userId },
+    update: {
+      stripeSubscriptionId,
+      stripeCustomerId,
+      status: 'ACTIVE',
+      tier,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    },
+    create: {
+      userId,
+      stripeSubscriptionId,
+      stripeCustomerId,
+      stripePriceId: priceId,
+      status: 'ACTIVE',
+      tier,
+      currentPeriodStart: new Date(subscription.current_period_start * 1000),
+      currentPeriodEnd: new Date(subscription.current_period_end * 1000),
+    },
+  });
+  
+  // Update user premium status
+  await this.prisma.user.update({
+    where: { id: userId },
+    data: { isPremium: true },
+  });
+}
+\end{lstlisting}
+
+\section{Customer Portal}
+
+\subsection{Portal Access}
+
+Stripe Customer Portal for subscription management:
+
+\begin{lstlisting}[language=typescript]
+@Post('create-portal-session')
+async createPortalSession(@Request() req, @Body() body: { returnUrl: string }) {
+  const subscription = await this.paymentsService.getUserSubscription(
+    req.user.userId,
+  );
+  
+  const session = await this.stripeService.billingPortal.sessions.create({
+    customer: subscription.stripeCustomerId,
+    return_url: body.returnUrl,
+  });
+  
+  return { url: session.url };
+}
+\end{lstlisting}
+
+\section{Feature Gating}
+
+\subsection{Premium Guard}
+
+\begin{lstlisting}[language=typescript]
+// src/common/guards/premium.guard.ts
+import { Injectable, CanActivate, ExecutionContext, ForbiddenException } from '@nestjs/common';
+
+@Injectable()
+export class PremiumGuard implements CanActivate {
+  async canActivate(context: ExecutionContext): Promise<boolean> {
+    const request = context.switchToHttp().getRequest();
+    const user = request.user;
+    
+    const subscription = await this.getUserSubscription(user.userId);
+    
+    if (!subscription || subscription.status !== 'ACTIVE') {
+      throw new ForbiddenException('Premium subscription required');
+    }
+    
+    return true;
+  }
+}
+
+// Usage
+@UseGuards(JwtAuthGuard, PremiumGuard)
+@Get('advanced-stats')
+getAdvancedStats() {
+  // Premium-only endpoint
+}
+\end{lstlisting}
+
+\section{Testing}
+
+\subsection{Stripe Test Mode}
+
+\begin{itemize}
+    \item Use test API keys for development
+    \item Test cards provided by Stripe
+    \item Webhook testing with Stripe CLI
+    \item Test subscription scenarios
+\end{itemize}
+
+\subsection{Test Cards}
+
+\begin{itemize}
+    \item \textbf{Success}: 4242 4242 4242 4242
+    \item \textbf{Decline}: 4000 0000 0000 0002
+    \item \textbf{3D Secure}: 4000 0025 0000 3155
+\end{itemize}
+
+\section{Security Considerations}
+
+\subsection{Webhook Security}
+
+\begin{itemize}
+    \item Verify webhook signatures
+    \item Use webhook secrets
+    \item Idempotency for webhook processing
+    \item Secure webhook endpoint
+\end{itemize}
+
+\subsection{Data Protection}
+
+\begin{itemize}
+    \item Never store full card numbers
+    \item PCI DSS compliance (Stripe handles)
+    \item Secure API key storage
+    \item Encrypted customer data
+\end{itemize}

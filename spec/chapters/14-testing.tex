@@ -1,0 +1,383 @@
+\chapter{Testing Strategy}
+
+\section{Overview}
+
+A comprehensive testing strategy ensures code quality, reliability, and maintainability. This chapter outlines testing approaches for both frontend and backend components.
+
+\section{Testing Pyramid}
+
+\subsection{Test Levels}
+
+\begin{itemize}
+    \item \textbf{Unit Tests}: 70\% - Test individual functions/components
+    \item \textbf{Integration Tests}: 20\% - Test module interactions
+    \item \textbf{E2E Tests}: 10\% - Test complete user flows
+\end{itemize}
+
+\section{Backend Testing}
+
+\subsection{Unit Testing}
+
+Using Jest for Nest.js:
+
+\begin{lstlisting}[language=typescript]
+// src/modules/games/games.service.spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { GamesService } from './games.service';
+
+describe('GamesService', () => {
+  let service: GamesService;
+  
+  beforeEach(async () => {
+    const module: TestingModule = await Test.createTestingModule({
+      providers: [GamesService],
+    }).compile();
+    
+    service = module.get<GamesService>(GamesService);
+  });
+  
+  it('should create a game', async () => {
+    const game = await service.createGame({
+      whitePlayerId: 'user1',
+      blackPlayerId: 'user2',
+      timeControl: '300+0',
+    });
+    
+    expect(game).toBeDefined();
+    expect(game.status).toBe('WAITING');
+  });
+  
+  it('should validate moves', () => {
+    const isValid = service.validateMove('e2e4', 'rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1');
+    expect(isValid).toBe(true);
+  });
+});
+\end{lstlisting}
+
+\subsection{Integration Testing}
+
+\begin{lstlisting}[language=typescript]
+// test/integration/games.e2e-spec.ts
+import { Test, TestingModule } from '@nestjs/testing';
+import { INestApplication } from '@nestjs/common';
+import * as request from 'supertest';
+import { AppModule } from '../../src/app.module';
+
+describe('Games (e2e)', () => {
+  let app: INestApplication;
+  
+  beforeAll(async () => {
+    const moduleFixture: TestingModule = await Test.createTestingModule({
+      imports: [AppModule],
+    }).compile();
+    
+    app = moduleFixture.createNestApplication();
+    await app.init();
+  });
+  
+  it('/api/v1/games (POST)', () => {
+    return request(app.getHttpServer())
+      .post('/api/v1/games')
+      .set('Authorization', 'Bearer token')
+      .send({
+        opponentId: 'user2',
+        timeControl: '300+0',
+      })
+      .expect(201)
+      .expect((res) => {
+        expect(res.body.id).toBeDefined();
+      });
+  });
+  
+  afterAll(async () => {
+    await app.close();
+  });
+});
+\end{lstlisting}
+
+\section{Frontend Testing}
+
+\subsection{Component Testing}
+
+Using React Testing Library:
+
+\begin{lstlisting}[language=typescript]
+// components/chess/ChessBoard.test.tsx
+import { render, screen, fireEvent } from '@testing-library/react';
+import { ChessBoard } from './ChessBoard';
+
+describe('ChessBoard', () => {
+  it('renders chess board', () => {
+    render(<ChessBoard position="start" />);
+    expect(screen.getByTestId('chess-board')).toBeInTheDocument();
+  });
+  
+  it('handles move selection', () => {
+    const onMove = jest.fn();
+    render(<ChessBoard position="start" onMove={onMove} />);
+    
+    const square = screen.getByTestId('square-e2');
+    fireEvent.click(square);
+    
+    expect(onMove).toHaveBeenCalled();
+  });
+});
+\end{lstlisting}
+
+\subsection{Hook Testing}
+
+\begin{lstlisting}[language=typescript]
+// hooks/useGameWebSocket.test.ts
+import { renderHook, waitFor } from '@testing-library/react';
+import { useGameWebSocket } from './useGameWebSocket';
+
+describe('useGameWebSocket', () => {
+  it('connects to WebSocket', async () => {
+    const { result } = renderHook(() =>
+      useGameWebSocket({
+        gameId: 'test-game',
+        onMove: jest.fn(),
+      })
+    );
+    
+    await waitFor(() => {
+      expect(result.current.isConnected).toBe(true);
+    });
+  });
+});
+\end{lstlisting}
+
+\section{E2E Testing}
+
+\subsection{Playwright Setup}
+
+\begin{lstlisting}[language=typescript]
+// e2e/game-flow.spec.ts
+import { test, expect } from '@playwright/test';
+
+test.describe('Game Flow', () => {
+  test('user can create and play a game', async ({ page }) => {
+    // Login
+    await page.goto('/login');
+    await page.fill('[name="email"]', 'test@example.com');
+    await page.fill('[name="password"]', 'password');
+    await page.click('button[type="submit"]');
+    
+    // Create game
+    await page.goto('/games');
+    await page.click('text=New Game');
+    await page.selectOption('[name="timeControl"]', '300+0');
+    await page.click('text=Start Game');
+    
+    // Make a move
+    await page.click('[data-square="e2"]');
+    await page.click('[data-square="e4"]');
+    
+    // Verify move was made
+    await expect(page.locator('.move-history')).toContainText('e4');
+  });
+});
+\end{lstlisting}
+
+\section{Database Testing}
+
+\subsection{Test Database}
+
+\begin{lstlisting}[language=typescript]
+// test/setup.ts
+import { PrismaClient } from '@chaos-chess/prisma';
+
+const prisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.TEST_DATABASE_URL,
+    },
+  },
+});
+
+beforeEach(async () => {
+  // Clean database
+  await prisma.$executeRaw`TRUNCATE TABLE "User", "Game", "Move" CASCADE`;
+});
+
+afterAll(async () => {
+  await prisma.$disconnect();
+});
+\end{lstlisting}
+
+\section{API Testing}
+
+\subsection{API Contract Testing}
+
+\begin{lstlisting}[language=typescript]
+// test/api/games.api.spec.ts
+import { test } from '@playwright/test';
+
+test('GET /api/v1/games returns valid response', async ({ request }) => {
+  const response = await request.get('/api/v1/games', {
+    headers: {
+      Authorization: 'Bearer test-token',
+    },
+  });
+  
+  expect(response.ok()).toBeTruthy();
+  const games = await response.json();
+  expect(Array.isArray(games.data)).toBe(true);
+  expect(games.meta).toHaveProperty('page');
+  expect(games.meta).toHaveProperty('limit');
+});
+\end{lstlisting}
+
+\section{WebSocket Testing}
+
+\subsection{WebSocket Test Client}
+
+\begin{lstlisting}[language=typescript]
+// test/websocket/game-websocket.spec.ts
+import { io, Socket } from 'socket.io-client';
+
+describe('Game WebSocket', () => {
+  let socket: Socket;
+  
+  beforeEach((done) => {
+    socket = io('http://localhost:3000/games', {
+      auth: {
+        token: 'test-token',
+      },
+    });
+    
+    socket.on('connect', () => {
+      done();
+    });
+  });
+  
+  it('should join game room', (done) => {
+    socket.emit('join-game', { gameId: 'test-game' });
+    socket.on('user-joined', (data) => {
+      expect(data.userId).toBeDefined();
+      done();
+    });
+  });
+  
+  it('should receive move updates', (done) => {
+    socket.emit('make-move', {
+      gameId: 'test-game',
+      move: 'e2e4',
+    });
+    
+    socket.on('move-made', (data) => {
+      expect(data.move).toBe('e2e4');
+      done();
+    });
+  });
+  
+  afterEach(() => {
+    socket.close();
+  });
+});
+\end{lstlisting}
+
+\section{Performance Testing}
+
+\subsection{Load Testing}
+
+Using k6 or Artillery:
+
+\begin{lstlisting}[language=javascript]
+// test/load/api-load-test.js
+import http from 'k6/http';
+import { check } from 'k6';
+
+export const options = {
+  stages: [
+    { duration: '30s', target: 100 },
+    { duration: '1m', target: 200 },
+    { duration: '30s', target: 0 },
+  ],
+};
+
+export default function () {
+  const response = http.get('https://api.example.com/api/v1/games', {
+    headers: {
+      Authorization: 'Bearer test-token',
+    },
+  });
+  
+  check(response, {
+    'status is 200': (r) => r.status === 200,
+    'response time < 500ms': (r) => r.timings.duration < 500,
+  });
+}
+\end{lstlisting}
+
+\section{Test Coverage}
+
+\subsection{Coverage Goals}
+
+\begin{itemize}
+    \item \textbf{Unit Tests}: ≥ 80\% coverage
+    \item \textbf{Integration Tests}: Critical paths covered
+    \item \textbf{E2E Tests}: Main user flows covered
+\end{itemize}
+
+\subsection{Coverage Tools}
+
+\begin{itemize}
+    \item \textbf{Jest}: Built-in coverage for backend
+    \item \textbf{Vitest}: Coverage for frontend
+    \item \textbf{Codecov}: Coverage reporting and tracking
+\end{itemize}
+
+\section{CI/CD Integration}
+
+\subsection{GitHub Actions}
+
+\begin{lstlisting}[language=yaml, caption=.github/workflows/test.yml]
+name: Tests
+
+on: [push, pull_request]
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: pnpm/action-setup@v2
+      - uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+      
+      - run: pnpm install
+      - run: pnpm test
+      - run: pnpm test:e2e
+      - run: pnpm test:coverage
+\end{lstlisting}
+
+\section{Test Data Management}
+
+\subsection{Fixtures}
+
+\begin{lstlisting}[language=typescript]
+// test/fixtures/users.ts
+export const testUsers = {
+  user1: {
+    id: 'user1',
+    email: 'user1@test.com',
+    username: 'testuser1',
+  },
+  user2: {
+    id: 'user2',
+    email: 'user2@test.com',
+    username: 'testuser2',
+  },
+};
+\end{lstlisting}
+
+\subsection{Mocking}
+
+\begin{itemize}
+    \item \textbf{External APIs}: Mock Stripe, OAuth providers
+    \item \textbf{Database}: Use test database or mocks
+    \item \textbf{WebSocket}: Mock WebSocket connections
+    \item \textbf{Time}: Mock time-dependent functions
+\end{itemize}

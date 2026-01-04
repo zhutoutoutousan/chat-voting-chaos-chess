@@ -1,0 +1,144 @@
+\section{Stage 3: Rating System and WebSocket - Progress Update}
+\subsection{Date}
+\DTMnow
+
+\subsection{Completed Tasks}
+
+\subsubsection{Rating System Implementation}
+\begin{itemize}
+    \item Created \texttt{RatingsService} with:
+    \begin{itemize}
+        \item ELO calculation using standard formula
+        \item K-factor determination (40/20/10 based on games played)
+        \item Rating update after game completion
+        \item Support for multiple rating types (OVERALL, BLITZ, RAPID, CLASSICAL, CORRESPONDENCE)
+        \item Peak rating tracking
+        \item Automatic rating type detection from time control
+    \end{itemize}
+    \item Rating calculation features:
+    \begin{itemize}
+        \item Expected score: $E_A = \frac{1}{1 + 10^{(R_B - R_A)/400}}$
+        \item Rating change: $\Delta R = K \times (S - E)$
+        \item Handles wins, losses, and draws
+        \item Updates win/loss/draw statistics
+        \item Tracks peak ratings and dates
+    \end{itemize}
+    \item Created \texttt{RatingsModule} and \texttt{RatingsController}
+    \item API endpoints:
+    \begin{itemize}
+        \item GET \texttt{/api/v1/ratings/me} - Get current user's ratings
+        \item GET \texttt{/api/v1/ratings/leaderboard} - Get leaderboard with pagination
+        \item GET \texttt{/api/v1/ratings/:userId/history} - Get rating history
+    \end{itemize}
+    \item Integrated with game completion:
+    \begin{itemize}
+        \item Ratings update automatically when game finishes
+        \item Only updates for rated games
+        \item Determines rating type from time control
+        \item Updates both players' ratings
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{WebSocket Infrastructure}
+\begin{itemize}
+    \item Installed and configured Socket.io:
+    \begin{itemize}
+        \item Backend: \texttt{@nestjs/platform-socket.io}
+        \item Configured CORS for frontend connection
+        \item Set up WebSocket gateway with namespace \texttt{/games}
+    \end{itemize}
+    \item Created \texttt{GamesGateway} with:
+    \begin{itemize}
+        \item JWT authentication for WebSocket connections
+        \item Connection/disconnection handling
+        \item Room-based architecture (game rooms)
+        \item User tracking per game room
+    \end{itemize}
+    \item WebSocket events implemented:
+    \begin{itemize}
+        \item \texttt{join-game} - Join game room as player or spectator
+        \item \texttt{leave-game} - Leave game room
+        \item \texttt{move-made} - Broadcast move to all clients
+        \item \texttt{game-update} - Broadcast game state changes
+        \item \texttt{game-finished} - Broadcast game completion
+        \item \texttt{user-joined} - Notify when user joins
+        \item \texttt{user-left} - Notify when user leaves
+    \end{itemize}
+    \item Authentication:
+    \begin{itemize}
+        \item JWT token validation in handshake
+        \item User info attached to socket
+        \item Unauthorized connections rejected
+    \end{itemize}
+    \item Real-time integration:
+    \begin{itemize}
+        \item Moves broadcast immediately after execution
+        \item Game state updates sent to all connected clients
+        \item Game finished events include final result
+        \item Room management tracks active connections
+    \end{itemize}
+\end{itemize}
+
+\subsection{Technical Implementation Details}
+
+\subsubsection{Rating System Architecture}
+\begin{itemize}
+    \item K-factor logic:
+    \begin{itemize}
+        \item New players (< 30 games): K = 40
+        \item Intermediate (30-100 games): K = 20
+        \item Established (> 100 games): K = 10
+    \end{itemize}
+    \item Rating types automatically determined from time control:
+    \begin{itemize}
+        \item ≤ 3 minutes: BLITZ
+        \item ≤ 10 minutes: RAPID
+        \item ≤ 60 minutes: CLASSICAL
+        \item > 60 minutes: CORRESPONDENCE
+    \end{itemize}
+    \item Ratings update on:
+    \begin{itemize}
+        \item Game completion (checkmate, stalemate, draw)
+        \item Resignation
+        \item Draw acceptance
+    \end{itemize}
+\end{itemize}
+
+\subsubsection{WebSocket Architecture}
+\begin{itemize}
+    \item Room-based system: Each game has its own room (\texttt{game:\{id\}})
+    \item Connection tracking: Map of gameId → Set of socketIds
+    \item Authentication: JWT token in handshake auth
+    \item Broadcasting: Server emits to all clients in room
+    \item Cleanup: Automatic room cleanup on disconnect
+\end{itemize}
+
+\subsection{Integration Points}
+
+\subsubsection{Game-Rating Integration}
+\begin{itemize}
+    \item Games service calls ratings service on completion
+    \item Rating type determined from game time control
+    \item Both players' ratings updated simultaneously
+    \item Statistics (wins/losses/draws) updated
+\end{itemize}
+
+\subsubsection{Game-WebSocket Integration}
+\begin{itemize}
+    \item Games service uses GamesGateway to broadcast events
+    \item Moves broadcast immediately after validation
+    \item Game state updates sent to all spectators
+    \item Game finished events include rating updates
+\end{itemize}
+
+\subsection{Key Achievements}
+\begin{enumerate}
+    \item \textbf{Complete Rating System}: ELO calculation with multiple rating types
+    \item \textbf{Automatic Updates}: Ratings update automatically after games
+    \item \textbf{Real-time Communication}: WebSocket infrastructure for live updates
+    \item \textbf{Authentication}: Secure WebSocket connections with JWT
+    \item \textbf{Room Management}: Efficient game room tracking
+\end{enumerate}
+
+\subsection{Status}
+\fbox{\textbf{COMPLETED}} - Rating system and WebSocket infrastructure fully implemented.

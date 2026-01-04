@@ -1,0 +1,197 @@
+\section{Stage 4: Chat Voting Chaos Mode and Frontend Components}
+\subsection{Planned Date}
+\DTMnow
+
+\subsection{Objective}
+Implement the chat voting chaos mode system and create essential frontend components for game display, chat, and voting interface.
+
+\subsection{Planned Tasks}
+
+\subsubsection{Chat Voting Chaos Mode Backend}
+\begin{enumerate}
+    \item Create Voting Service
+    \begin{itemize}
+        \item Generate move options from legal moves
+        \item Select top N moves by engine evaluation
+        \item Collect and aggregate votes
+        \item Support majority and percentage voting modes
+        \item Track voting rounds
+        \item Select winning move
+    \end{itemize}
+    \item Move suggestion system
+    \begin{itemize}
+        \item Get legal moves from chess engine
+        \item Evaluate moves (basic evaluation for now)
+        \item Select top 4 moves as options
+        \item Format moves in SAN notation
+        \item Display move options to voters
+    \end{itemize}
+    \item Vote collection
+    \begin{itemize}
+        \item Accept votes by move notation (e4, Nf3, etc.)
+        \item Accept votes by option number (1, 2, 3, 4)
+        \item Track individual user votes
+        \item Allow vote changes
+        \item Prevent duplicate votes from same user
+    \end{itemize}
+    \item Vote aggregation
+    \begin{itemize}
+        \item Majority mode: Option with most votes wins
+        \item Percentage mode: Weighted random selection
+        \item Vote weighting (premium users have higher weight)
+        \item Tie-breaking mechanisms
+    \end{itemize}
+    \item Voting endpoints
+    \begin{itemize}
+        \item POST \texttt{/api/v1/voting/games/:gameId/start} - Start voting round
+        \item POST \texttt{/api/v1/voting/games/:gameId/vote} - Submit vote
+        \item GET \texttt{/api/v1/voting/games/:gameId/status} - Get current vote status
+        \item POST \texttt{/api/v1/voting/games/:gameId/end} - End voting and execute move
+    \end{itemize}
+    \item Voting WebSocket events
+    \begin{itemize}
+        \item \texttt{voting-started} - New voting round started
+        \item \texttt{vote-submitted} - Vote received
+        \item \texttt{vote-update} - Vote counts updated
+        \item \texttt{voting-ended} - Voting round ended
+        \item \texttt{move-selected} - Winning move selected
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Chat System Backend}
+\begin{enumerate}
+    \item Create Chat Service
+    \begin{itemize}
+        \item Send messages to game chat
+        \item Get chat history
+        \item Message moderation
+        \item Rate limiting
+    \end{itemize}
+    \item Chat endpoints
+    \begin{itemize}
+        \item GET \texttt{/api/v1/chat/games/:gameId/messages} - Get messages
+        \item POST \texttt{/api/v1/chat/games/:gameId/messages} - Send message
+    \end{itemize}
+    \item Chat WebSocket events
+    \begin{itemize}
+        \item \texttt{join-chat} - Join game chat
+        \item \texttt{send-message} - Send chat message
+        \item \texttt{new-message} - Broadcast new message
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Frontend Components}
+\begin{enumerate}
+    \item Chess Board Component
+    \begin{itemize}
+        \item Render 8x8 chess board
+        \item Display pieces on squares
+        \item Handle piece selection
+        \item Highlight legal moves
+        \item Animate piece movement
+        \item Support drag and drop
+    \end{itemize}
+    \item Game View Component
+    \begin{itemize}
+        \item Display chess board
+        \item Show move history
+        \item Display game clock
+        \item Game controls (resign, offer draw)
+        \item Game status display
+    \end{itemize}
+    \item Chat Component
+    \begin{itemize}
+        \item Chat message list
+        \item Message input field
+        \item User list
+        \item Message timestamps
+        \item Auto-scroll to latest
+    \end{itemize}
+    \item Voting Panel Component
+    \begin{itemize}
+        \item Display move options
+        \item Vote buttons/inputs
+        \item Vote count display
+        \item Voting timer
+        \item Winning move highlight
+    \end{itemize}
+    \item WebSocket Hooks
+    \begin{itemize}
+        \item \texttt{useGameWebSocket} - Game updates
+        \item \texttt{useChatWebSocket} - Chat messages
+        \item \texttt{useVotingWebSocket} - Voting updates
+        \item Reconnection logic
+        \item Connection state management
+    \end{itemize}
+    \item API Client
+    \begin{itemize}
+        \item Centralized fetch wrapper
+        \item Authentication headers
+        \item Error handling
+        \item Type-safe API calls
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{NextAuth.js Integration}
+\begin{enumerate}
+    \item Install NextAuth.js
+    \item Configure authentication
+    \begin{itemize}
+        \item JWT strategy
+        \item Session management
+        \item API route setup
+    \end{itemize}
+    \item OAuth providers (optional for MVP)
+    \begin{itemize}
+        \item Google OAuth
+        \item GitHub OAuth
+    \end{itemize}
+    \item Auth context
+    \begin{itemize}
+        \item Create AuthProvider
+        \item useAuth hook
+        \item Protected routes
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Implementation Priority}
+
+\begin{enumerate}
+    \item \textbf{High Priority}:
+    \begin{itemize}
+        \item Voting service and endpoints
+        \item Voting WebSocket events
+        \item Chess board component
+        \item Game view component
+    \end{itemize}
+    
+    \item \textbf{Medium Priority}:
+    \begin{itemize}
+        \item Chat service and WebSocket
+        \item Chat component
+        \item Voting panel component
+        \item WebSocket hooks
+    \end{itemize}
+    
+    \item \textbf{Lower Priority}:
+    \begin{itemize}
+        \item NextAuth.js integration
+        \item OAuth providers
+        \item API client polish
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Success Criteria}
+
+\begin{itemize}
+    \item Spectators can vote on moves in chaos mode games
+    \item Votes are aggregated and winning move is selected
+    \item Chess board displays and updates in real-time
+    \item Chat messages appear in real-time
+    \item Voting panel shows options and counts
+    \item WebSocket connections work reliably
+    \item Frontend components are responsive and functional
+\end{itemize}
+
+\subsection{Status}
+\fbox{\textbf{PLANNED}} - Ready to implement

@@ -1,0 +1,405 @@
+\chapter{Deployment Strategy}
+
+\section{Overview}
+
+The platform is designed for deployment on Vercel, leveraging serverless functions, edge computing, and optimized Next.js integration. This chapter outlines the complete deployment strategy.
+
+\section{Vercel Configuration}
+
+\subsection{Project Setup}
+
+\begin{lstlisting}[language=json, caption=vercel.json]
+{
+  "version": 2,
+  "buildCommand": "pnpm build",
+  "devCommand": "pnpm dev",
+  "installCommand": "pnpm install",
+  "framework": "nextjs",
+  "regions": ["iad1"],
+  "env": {
+    "NODE_ENV": "production"
+  },
+  "functions": {
+    "apps/frontend/app/api/**/*.ts": {
+      "maxDuration": 30
+    }
+  },
+  "rewrites": [
+    {
+      "source": "/api/:path*",
+      "destination": "/api/:path*"
+    }
+  ]
+}
+\end{lstlisting}
+
+\subsection{Environment Variables}
+
+Configure in Vercel Dashboard:
+
+\begin{itemize}
+    \item \textbf{Database}: \texttt{DATABASE_URL}
+    \item \textbf{NextAuth}: \texttt{NEXTAUTH_URL}, \texttt{NEXTAUTH_SECRET}
+    \item \textbf{OAuth}: Provider client IDs and secrets
+    \item \textbf{Stripe}: API keys and webhook secret
+    \item \textbf{API}: Backend API URL
+    \item \textbf{WebSocket}: WebSocket server URL
+\end{itemize}
+
+\section{Monorepo Deployment}
+
+\subsection{Turborepo Configuration}
+
+\begin{lstlisting}[language=json, caption=turbo.json for deployment]
+{
+  "$schema": "https://turbo.build/schema.json",
+  "pipeline": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": [".next/**", "!.next/cache/**", "dist/**"]
+    },
+    "deploy": {
+      "dependsOn": ["build"]
+    }
+  }
+}
+\end{lstlisting}
+
+\subsection{Vercel Project Configuration}
+
+For monorepo, configure Vercel to:
+
+\begin{itemize}
+    \item Root directory: Project root
+    \item Build command: \texttt{pnpm --filter frontend build}
+    \item Output directory: \texttt{apps/frontend/.next}
+    \item Install command: \texttt{pnpm install}
+\end{itemize}
+
+\section{Database Deployment}
+
+\subsection{Vercel Postgres}
+
+Option 1: Use Vercel Postgres:
+
+\begin{itemize}
+    \item Integrated with Vercel
+    \item Automatic connection pooling
+    \item Serverless-optimized
+    \item Easy environment variable setup
+\end{itemize}
+
+\subsection{External Database}
+
+Option 2: External PostgreSQL provider:
+
+\begin{itemize}
+    \item \textbf{Supabase}: PostgreSQL with additional features
+    \item \textbf{Neon}: Serverless PostgreSQL
+    \item \textbf{Railway}: Simple PostgreSQL hosting
+    \item \textbf{AWS RDS}: Enterprise option
+\end{itemize}
+
+\subsection{Database Migrations}
+
+\begin{lstlisting}[language=bash, caption=Deployment script]
+#!/bin/bash
+# Deploy database migrations
+
+# Run migrations
+pnpm --filter @chaos-chess/prisma migrate deploy
+
+# Generate Prisma Client
+pnpm --filter @chaos-chess/prisma generate
+\end{lstlisting}
+
+\section{Backend Deployment}
+
+\subsection{Separate Backend Deployment}
+
+Since Nest.js backend may not be optimal for Vercel serverless:
+
+\begin{itemize}
+    \item \textbf{Railway}: Simple Node.js deployment
+    \item \textbf{Render}: Full-stack deployment
+    \item \textbf{Heroku}: Traditional PaaS
+    \item \textbf{AWS Lambda}: Serverless functions
+    \item \textbf{DigitalOcean App Platform}: Container deployment
+\end{itemize}
+
+\subsection{Backend as API Routes}
+
+Alternative: Convert Nest.js endpoints to Next.js API routes:
+
+\begin{lstlisting}[language=typescript]
+// app/api/v1/games/route.ts
+import { NextRequest, NextResponse } from 'next/server';
+
+export async function GET(request: NextRequest) {
+  // Implement game listing logic
+  const games = await getGames();
+  return NextResponse.json(games);
+}
+
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const game = await createGame(body);
+  return NextResponse.json(game, { status: 201 });
+}
+\end{lstlisting}
+
+\section{WebSocket Deployment}
+
+\subsection{External WebSocket Service}
+
+Since Vercel doesn't support persistent WebSocket connections:
+
+\begin{itemize}
+    \item \textbf{Pusher}: Managed WebSocket service
+    \item \textbf{Ably}: Real-time messaging platform
+    \item \textbf{Socket.io Cloud}: Managed Socket.io
+    \item \textbf{Separate WebSocket Server}: Deploy on Railway/Render
+\end{itemize}
+
+\subsection{Pusher Integration}
+
+\begin{lstlisting}[language=typescript]
+// Backend
+import Pusher from 'pusher';
+
+const pusher = new Pusher({
+  appId: process.env.PUSHER_APP_ID!,
+  key: process.env.PUSHER_KEY!,
+  secret: process.env.PUSHER_SECRET!,
+  cluster: process.env.PUSHER_CLUSTER!,
+});
+
+// Trigger event
+pusher.trigger(`game-${gameId}`, 'move-made', {
+  move: moveData,
+});
+\end{lstlisting}
+
+\section{CI/CD Pipeline}
+
+\subsection{GitHub Actions}
+
+\begin{lstlisting}[language=yaml, caption=.github/workflows/deploy.yml]
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      
+      - name: Setup pnpm
+        uses: pnpm/action-setup@v2
+        with:
+          version: 8
+      
+      - name: Setup Node.js
+        uses: actions/setup-node@v3
+        with:
+          node-version: '20'
+          cache: 'pnpm'
+      
+      - name: Install dependencies
+        run: pnpm install
+      
+      - name: Run tests
+        run: pnpm test
+      
+      - name: Build
+        run: pnpm build
+      
+      - name: Deploy to Vercel
+        uses: amondnet/vercel-action@v20
+        with:
+          vercel-token: ${{ secrets.VERCEL_TOKEN }}
+          vercel-org: ${{ secrets.VERCEL_ORG }}
+          vercel-project: ${{ secrets.VERCEL_PROJECT }}
+          vercel-args: '--prod'
+\end{lstlisting}
+
+\section{Environment Configuration}
+
+\subsection{Environment Files}
+
+\begin{lstlisting}[language=bash, caption=.env.production]
+# Database
+DATABASE_URL=postgresql://...
+
+# NextAuth
+NEXTAUTH_URL=https://chaos-chess.vercel.app
+NEXTAUTH_SECRET=...
+
+# OAuth
+GOOGLE_CLIENT_ID=...
+GOOGLE_CLIENT_SECRET=...
+GITHUB_CLIENT_ID=...
+GITHUB_CLIENT_SECRET=...
+
+# Stripe
+STRIPE_SECRET_KEY=sk_live_...
+STRIPE_PUBLISHABLE_KEY=pk_live_...
+STRIPE_WEBHOOK_SECRET=whsec_...
+
+# API
+NEXT_PUBLIC_API_URL=https://api.chaos-chess.com
+NEXT_PUBLIC_WS_URL=wss://ws.chaos-chess.com
+\end{lstlisting}
+
+\section{Performance Optimization}
+
+\subsection{Edge Functions}
+
+Use Vercel Edge Functions for low-latency operations:
+
+\begin{lstlisting}[language=typescript]
+// app/api/ratings/route.ts
+export const runtime = 'edge';
+
+export async function GET(request: Request) {
+  // Edge function for fast response
+  const ratings = await getRatings();
+  return Response.json(ratings);
+}
+\end{lstlisting}
+
+\subsection{Static Generation}
+
+Pre-render static pages:
+
+\begin{lstlisting}[language=typescript]
+// app/academy/courses/[id]/page.tsx
+export async function generateStaticParams() {
+  const courses = await getCourses();
+  return courses.map((course) => ({
+    id: course.id,
+  }));
+}
+
+export async function generateMetadata({ params }: { params: { id: string } }) {
+  const course = await getCourse(params.id);
+  return {
+    title: course.title,
+    description: course.description,
+  };
+}
+\end{lstlisting}
+
+\subsection{Image Optimization}
+
+\begin{lstlisting}[language=typescript]
+// next.config.js
+module.exports = {
+  images: {
+    domains: ['example.com'],
+    formats: ['image/avif', 'image/webp'],
+  },
+};
+\end{lstlisting}
+
+\section{Monitoring \& Analytics}
+
+\subsection{Vercel Analytics}
+
+\begin{itemize}
+    \item Web Vitals tracking
+    \item Performance monitoring
+    \item Error tracking
+    \item Real User Monitoring (RUM)
+\end{itemize}
+
+\subsection{Error Tracking}
+
+\begin{itemize}
+    \item \textbf{Sentry}: Error tracking and monitoring
+    \item \textbf{LogRocket}: Session replay
+    \item \textbf{Vercel Logs}: Built-in logging
+\end{itemize}
+
+\section{Security}
+
+\subsection{HTTPS}
+
+\begin{itemize}
+    \item Automatic HTTPS on Vercel
+    \item SSL certificate management
+    \item HSTS headers
+\end{itemize}
+
+\subsection{Headers}
+
+\begin{lstlisting}[language=javascript, caption=next.config.js security headers]
+module.exports = {
+  async headers() {
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          {
+            key: 'X-Frame-Options',
+            value: 'DENY',
+          },
+          {
+            key: 'X-Content-Type-Options',
+            value: 'nosniff',
+          },
+          {
+            key: 'Referrer-Policy',
+            value: 'strict-origin-when-cross-origin',
+          },
+        ],
+      },
+    ];
+  },
+};
+\end{lstlisting}
+
+\section{Scaling}
+
+\subsection{Automatic Scaling}
+
+Vercel provides:
+
+\begin{itemize}
+    \item Automatic serverless scaling
+    \item Edge network distribution
+    \item CDN for static assets
+    \item Connection pooling for databases
+\end{itemize}
+
+\subsection{Database Scaling}
+
+\begin{itemize}
+    \item Connection pooling (Prisma)
+    \item Read replicas for analytics
+    \item Caching layer (Redis - future)
+    \item Query optimization
+\end{itemize}
+
+\section{Backup \& Recovery}
+
+\subsection{Database Backups}
+
+\begin{itemize}
+    \item Automated daily backups
+    \item Point-in-time recovery
+    \item Backup retention policy
+    \item Disaster recovery plan
+\end{itemize}
+
+\subsection{Code Backups}
+
+\begin{itemize}
+    \item Git version control
+    \item Branch protection
+    \item Release tags
+    \item Deployment history
+\end{itemize}

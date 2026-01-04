@@ -1,0 +1,366 @@
+\section{Stage 2: Core Features Implementation}
+\subsection{Planned Date}
+To be determined
+
+\subsection{Objective}
+Implement core platform features including chess game logic, real-time communication, chat voting chaos mode, and user interface components.
+
+\subsection{Planned Tasks}
+
+\subsubsection{Database Setup and Migrations}
+\begin{enumerate}
+    \item Configure Supabase connection
+    \begin{itemize}
+        \item Create Supabase project
+        \item Obtain connection string
+        \item Set up environment variables
+    \end{itemize}
+    \item Generate Prisma client
+    \begin{itemize}
+        \item Run \texttt{prisma generate}
+        \item Verify type generation
+    \end{itemize}
+    \item Create initial migration
+    \begin{itemize}
+        \item Run \texttt{prisma migrate dev}
+        \item Verify database schema creation
+        \item Test database connection
+    \end{itemize}
+    \item Create seed data (optional)
+    \begin{itemize}
+        \item Admin user
+        \item Sample puzzles
+        \item Test users
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Chess Engine Integration}
+\begin{enumerate}
+    \item Research and select chess engine library
+    \begin{itemize}
+        \item Options: chess.js, stockfish.js, or custom implementation
+        \item Evaluate performance and features
+    \end{itemize}
+    \item Create Chess Service module
+    \begin{itemize}
+        \item \texttt{ChessService} in backend
+        \item Move validation
+        \item Position evaluation
+        \item Legal move generation
+        \item FEN parsing and generation
+    \end{itemize}
+    \item Implement move processing
+    \begin{itemize}
+        \item Validate moves server-side
+        \item Update game state
+        \item Check for game end conditions (checkmate, stalemate, draw)
+        \item Calculate time remaining
+    \end{itemize}
+    \item Add game analysis
+    \begin{itemize}
+        \item Engine evaluation
+        \item Best move suggestions
+        \item Move annotations
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Game Management Enhancement}
+\begin{enumerate}
+    \item Extend Games Service
+    \begin{itemize}
+        \item Create game endpoint
+        \item Make move endpoint
+        \item Resign game endpoint
+        \item Offer/accept draw endpoints
+        \item Get game analysis endpoint
+    \end{itemize}
+    \item Implement game state management
+    \begin{itemize}
+        \item Track game status
+        \item Handle time controls
+        \item Manage game timers
+        \item Process game results
+    \end{itemize}
+    \item Add game filtering and search
+    \begin{itemize}
+        \item Filter by status, player, rating
+        \item Pagination
+        \item Sorting options
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Rating System Implementation}
+\begin{enumerate}
+    \item Create Ratings Service
+    \begin{itemize}
+        \item Calculate ELO changes
+        \item Update ratings after games
+        \item Handle different rating types (Blitz, Rapid, Classical, etc.)
+        \item Implement K-factor logic based on games played
+    \end{itemize}
+    \item Rating endpoints
+    \begin{itemize}
+        \item Get user ratings
+        \item Get rating history
+        \item Get leaderboards
+        \item Get rating distribution
+    \end{itemize}
+    \item Rating calculation logic
+    \begin{itemize}
+        \item Expected score calculation
+        \item Rating change formula
+        \item Peak rating tracking
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{WebSocket Real-time Communication}
+\begin{enumerate}
+    \item Set up Socket.io in backend
+    \begin{itemize}
+        \item Install and configure Socket.io
+        \item Create WebSocket gateway
+        \item Set up authentication for WebSocket
+        \item Configure CORS for WebSocket
+    \end{itemize}
+    \item Game WebSocket events
+    \begin{itemize}
+        \item Join game room
+        \item Leave game room
+        \item Make move event
+        \item Game state updates
+        \item Time updates
+        \item Game finished event
+    \end{itemize}
+    \item Chat WebSocket events
+    \begin{itemize}
+        \item Join chat room
+        \item Send message
+        \item Receive messages
+        \item User joined/left notifications
+    \end{itemize}
+    \item Voting WebSocket events
+    \begin{itemize}
+        \item Voting round started
+        \item Submit vote
+        \item Vote count updates
+        \item Voting round ended
+    \end{itemize}
+    \item Frontend WebSocket integration
+    \begin{itemize}
+        \item Create WebSocket hook
+        \item Connect to game rooms
+        \item Handle real-time updates
+        \item Reconnection logic
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Chat Voting Chaos Mode}
+\begin{enumerate}
+    \item Create Voting Service
+    \begin{itemize}
+        \item Generate move options
+        \item Collect votes
+        \item Aggregate votes (majority/percentage modes)
+        \item Select winning move
+        \item Track voting rounds
+    \end{itemize}
+    \item Voting endpoints
+    \begin{itemize}
+        \item Start voting round
+        \item Submit vote
+        \item Get current vote status
+        \item Get vote results
+    \end{itemize}
+    \item Chess notation parsing
+    \begin{itemize}
+        \item Parse SAN notation (e4, Nf3, etc.)
+        \item Validate notation
+        \item Convert between formats
+    \end{itemize}
+    \item Move suggestion system
+    \begin{itemize}
+        \item Engine-suggested moves
+        \item Top N moves by evaluation
+        \item Display move options with notation
+    \end{itemize}
+    \item Vote aggregation logic
+    \begin{itemize}
+        \item Majority voting mode
+        \item Percentage voting mode
+        \item Vote weighting (premium users)
+        \item Tie-breaking mechanisms
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Frontend Components}
+\begin{enumerate}
+    \item UI Component Library Setup
+    \begin{itemize}
+        \item Install shadcn/ui or similar
+        \item Set up component structure
+        \item Create base components (Button, Input, Card, etc.)
+    \end{itemize}
+    \item Authentication Pages
+    \begin{itemize}
+        \item Login page
+        \item Registration page
+        \item OAuth integration
+        \item Password reset flow
+    \end{itemize}
+    \item Game Components
+    \begin{itemize}
+        \item Chess board component
+        \item Piece rendering
+        \item Move history display
+        \item Game clock component
+        \item Game controls (resign, offer draw)
+    \end{itemize}
+    \item Chat Components
+    \begin{itemize}
+        \item Chat window
+        \item Message list
+        \item Message input
+        \item User list
+    \end{itemize}
+    \item Voting Components
+    \begin{itemize}
+        \item Voting panel
+        \item Move options display
+        \item Vote count visualization
+        \item Voting timer
+    \end{itemize}
+    \item Dashboard Layout
+    \begin{itemize}
+        \item Navigation sidebar
+        \item Header with user menu
+        \item Main content area
+        \item Responsive design
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{NextAuth.js Integration}
+\begin{enumerate}
+    \item Install and configure NextAuth.js
+    \begin{itemize}
+        \item Set up NextAuth API route
+        \item Configure JWT strategy
+        \item Set up session management
+    \end{itemize}
+    \item OAuth Providers
+    \begin{itemize}
+        \item Google OAuth
+        \item GitHub OAuth
+        \item Discord OAuth
+    \end{itemize}
+    \item Authentication flow
+    \begin{itemize}
+        \item Login with credentials
+        \item OAuth login
+        \item Session management
+        \item Protected routes
+    \end{itemize}
+    \item User context
+    \begin{itemize}
+        \item Create AuthContext
+        \item Provide user state
+        \item Handle session updates
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{API Client Setup}
+\begin{enumerate}
+    \item Create API client utility
+    \begin{itemize}
+        \item Centralized fetch wrapper
+        \item Error handling
+        \item Request/response interceptors
+        \item Token management
+    \end{itemize}
+    \item API service functions
+    \begin{itemize}
+        \item Auth API (login, register, logout)
+        \item Games API (list, get, create, move)
+        \item Users API (profile, stats)
+        \item Ratings API (get ratings, leaderboard)
+    \end{itemize}
+    \item Type-safe API calls
+    \begin{itemize}
+        \item Use shared types
+        \item Type-safe request/response
+        \item Error types
+    \end{itemize}
+\end{enumerate}
+
+\subsubsection{Testing Setup}
+\begin{enumerate}
+    \item Backend testing
+    \begin{itemize}
+        \item Set up Jest
+        \item Create test utilities
+        \item Write unit tests for services
+        \item Write integration tests for controllers
+    \end{itemize}
+    \item Frontend testing
+    \begin{itemize}
+        \item Set up React Testing Library
+        \item Create component tests
+        \item Set up E2E testing (Playwright)
+    \end{itemize}
+    \item Database testing
+    \begin{itemize}
+        \item Test database setup
+        \item Migration testing
+        \item Seed data for tests
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Implementation Priority}
+
+\begin{enumerate}
+    \item \textbf{High Priority} (Core functionality):
+    \begin{itemize}
+        \item Database setup and migrations
+        \item Chess engine integration
+        \item Game management enhancement
+        \item WebSocket real-time communication
+    \end{itemize}
+    
+    \item \textbf{Medium Priority} (Important features):
+    \begin{itemize}
+        \item Rating system implementation
+        \item Chat voting chaos mode
+        \item Frontend components (game, chat, voting)
+        \item NextAuth.js integration
+    \end{itemize}
+    
+    \item \textbf{Lower Priority} (Polish and testing):
+    \begin{itemize}
+        \item API client setup
+        \item Testing setup
+        \item UI polish
+    \end{itemize}
+\end{enumerate}
+
+\subsection{Estimated Timeline}
+
+\begin{itemize}
+    \item \textbf{Week 1}: Database setup, Chess engine, Game management
+    \item \textbf{Week 2}: WebSocket, Rating system, Basic frontend
+    \item \textbf{Week 3}: Chat voting chaos mode, Authentication, API client
+    \item \textbf{Week 4}: Testing, Polish, Bug fixes
+\end{itemize}
+
+\subsection{Success Criteria}
+
+\begin{itemize}
+    \item Users can register and login
+    \item Users can create and play chess games
+    \item Games update in real-time via WebSocket
+    \item Rating system calculates and updates correctly
+    \item Chaos mode allows spectators to vote on moves
+    \item Frontend displays games, chat, and voting interface
+    \item All core features are tested
+\end{itemize}
+
+\subsection{Status}
+\fbox{\textbf{PLANNED}} - Ready to begin implementation

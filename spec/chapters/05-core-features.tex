@@ -1,0 +1,293 @@
+\chapter{Core Features}
+
+\section{Feature Overview}
+
+The Chat Voting Chaos Chess Platform includes comprehensive features comparable to chess.com, enhanced with unique interactive elements. This chapter details all core features and their specifications.
+
+\section{User Management}
+
+\subsection{User Registration \& Authentication}
+
+\begin{itemize}
+    \item \textbf{OAuth Integration}: Support for Google, GitHub, Discord
+    \item \textbf{Email/Password}: Traditional registration option
+    \item \textbf{Email Verification}: Required for account activation
+    \item \textbf{Password Reset}: Secure password recovery flow
+    \item \textbf{Profile Management}: User profile creation and editing
+    \item \textbf{Avatar Upload}: Profile picture management
+\end{itemize}
+
+\subsection{User Profiles}
+
+\begin{itemize}
+    \item \textbf{Public Profile}: Display username, avatar, ELO rating, statistics
+    \item \textbf{Profile Statistics}: Games played, win/loss/draw records
+    \item \textbf{Achievement System}: Badges and accomplishments
+    \item \textbf{Activity History}: Recent games and activity
+    \item \textbf{Social Features}: Follow/unfollow other players
+\end{itemize}
+
+\section{Chess Game Features}
+
+\subsection{Game Modes}
+
+\begin{itemize}
+    \item \textbf{Classic Chess}: Standard chess gameplay
+    \item \textbf{Chaos Mode}: Chat voting influences moves
+    \item \textbf{Blitz}: Fast-paced games (3+0, 5+0, 10+0)
+    \item \textbf{Rapid}: Medium time control (15+10, 30+0)
+    \item \textbf{Classical}: Long time control (60+0, 90+30)
+    \item \textbf{Correspondence}: Multi-day games
+    \item \textbf{Custom Time Controls}: User-defined time limits
+\end{itemize}
+
+\subsection{Game Features}
+
+\begin{itemize}
+    \item \textbf{Move Validation}: Legal move checking
+    \item \textbf{Move History}: Complete game notation (PGN)
+    \item \textbf{Game Analysis}: Post-game analysis with engine
+    \item \textbf{Takeback Requests}: Request move takeback (if enabled)
+    \item \textbf{Draw Offers}: Offer and accept/decline draws
+    \item \textbf{Resignation}: Surrender option
+    \item \textbf{Time Management}: Clock display and management
+    \item \textbf{Game Replay}: Review completed games
+\end{itemize}
+
+\subsection{Chess Engine Integration}
+
+\begin{itemize}
+    \item \textbf{Stockfish Integration}: Engine analysis
+    \item \textbf{Move Suggestions}: Engine recommendations
+    \item \textbf{Position Evaluation}: Position strength analysis
+    \item \textbf{Best Move Calculation}: Engine best move
+    \item \textbf{Depth Analysis}: Configurable analysis depth
+\end{itemize}
+
+\section{ELO Rating System}
+
+\subsection{Rating Calculation}
+
+\begin{itemize}
+    \item \textbf{Initial Rating}: Starting ELO (typically 1200 or 1500)
+    \item \textbf{Rating Updates}: After each rated game
+    \item \textbf{K-Factor}: Variable K-factor based on rating
+    \begin{itemize}
+        \item New players (< 30 games): K = 40
+        \item Intermediate (30-100 games): K = 20
+        \item Established (> 100 games): K = 10
+    \end{itemize}
+    \item \textbf{Expected Score}: Calculated using ELO formula
+    \item \textbf{Rating Change}: Based on actual vs expected score
+\end{itemize}
+
+\subsection{Rating Categories}
+
+\begin{itemize}
+    \item \textbf{Overall Rating}: Combined rating across all time controls
+    \item \textbf{Blitz Rating}: Separate rating for blitz games
+    \item \textbf{Rapid Rating}: Separate rating for rapid games
+    \item \textbf{Classical Rating}: Separate rating for classical games
+    \item \textbf{Correspondence Rating}: Rating for correspondence games
+    \item \textbf{Puzzle Rating}: Rating for puzzle solving
+\end{itemize}
+
+\subsection{Rating Display}
+
+\begin{itemize}
+    \item \textbf{Rating History}: Graph showing rating over time
+    \item \textbf{Rating Distribution}: Percentile ranking
+    \item \textbf{Rating Milestones}: Achievement notifications
+    \item \textbf{Leaderboards}: Top players by rating
+\end{itemize}
+
+\section{Chat Voting Chaos Mode}
+
+\subsection{Core Concept}
+
+Chaos Mode allows spectators to vote on moves, creating an interactive and unpredictable gameplay experience.
+
+\subsection{Voting Mechanics}
+
+\begin{itemize}
+    \item \textbf{Spectator Voting}: Viewers can vote on suggested moves
+    \item \textbf{Move Suggestions}: Engine or popular move options
+    \item \textbf{Voting Window}: Time-limited voting period
+    \item \textbf{Vote Aggregation}: Most popular move is played
+    \item \textbf{Tie Breaking}: Random selection or engine preference
+    \item \textbf{Vote Weighting}: Optional premium user vote weighting
+\end{itemize}
+
+\subsection{Chat Integration}
+
+\begin{itemize}
+    \item \textbf{Live Chat}: Real-time chat during games
+    \item \textbf{Move Suggestions}: Chat commands for move suggestions
+    \item \textbf{Moderation}: Chat moderation tools
+    \item \textbf{Emotes}: Chess-themed emotes and reactions
+    \item \textbf{User Mentions}: @mention functionality
+\end{itemize}
+
+\subsection{Chaos Mode Features}
+
+\begin{itemize}
+    \item \textbf{Public Games}: Games open to spectator voting
+    \item \textbf{Private Games}: Invite-only chaos games
+    \item \textbf{Voting History}: Record of all votes and outcomes
+    \item \textbf{Chaos Rating}: Separate rating for chaos mode
+    \item \textbf{Popular Games}: Highlighted chaos games
+\end{itemize}
+
+\section{Chess Academy}
+
+\subsection{Learning Paths}
+
+\begin{itemize}
+    \item \textbf{Beginner Path}: Fundamentals of chess
+    \item \textbf{Intermediate Path}: Tactics and strategy
+    \item \textbf{Advanced Path}: Advanced concepts and openings
+    \item \textbf{Master Path}: Expert-level content
+    \item \textbf{Custom Paths}: User-created learning paths
+\end{itemize}
+
+\subsection{Content Types}
+
+\begin{itemize}
+    \item \textbf{Interactive Lessons}: Step-by-step tutorials
+    \item \textbf{Video Content}: Instructional videos
+    \item \textbf{Chess Puzzles}: Tactical puzzles with solutions
+    \item \textbf{Opening Explorer}: Opening theory and variations
+    \item \textbf{Endgame Trainer}: Endgame practice scenarios
+    \item \textbf{Game Analysis}: Annotated master games
+\end{itemize}
+
+\subsection{Progress Tracking}
+
+\begin{itemize}
+    \item \textbf{Lesson Completion}: Track completed lessons
+    \item \textbf{Progress Bars}: Visual progress indicators
+    \item \textbf{Achievements}: Learning milestones
+    \item \textbf{Certificates}: Course completion certificates
+    \item \textbf{Skill Assessment}: Periodic skill tests
+\end{itemize}
+
+\subsection{Puzzle System}
+
+\begin{itemize}
+    \item \textbf{Daily Puzzles}: New puzzle each day
+    \item \textbf{Puzzle Rush}: Timed puzzle solving
+    \item \textbf{Puzzle Rating}: Separate rating for puzzles
+    \item \textbf{Puzzle Themes}: Tactics, endgames, openings
+    \item \textbf{Difficulty Levels}: Beginner to master
+\end{itemize}
+
+\section{Matchmaking \& Tournaments}
+
+\subsection{Matchmaking}
+
+\begin{itemize}
+    \item \textbf{Rating-Based Matching}: Match players of similar rating
+    \item \textbf{Time Control Preferences}: Match preferred time controls
+    \item \textbf{Quick Match}: Instant game matching
+    \item \textbf{Custom Challenges}: Challenge specific players
+    \item \textbf{Matchmaking Queue}: Join waiting queue
+\end{itemize}
+
+\subsection{Tournaments}
+
+\begin{itemize}
+    \item \textbf{Scheduled Tournaments}: Regular tournament events
+    \item \textbf{Swiss System}: Swiss tournament format
+    \item \textbf{Round-Robin}: Round-robin tournaments
+    \item \textbf{Knockout}: Single/double elimination
+    \item \textbf{Arena Tournaments}: Continuous play format
+    \item \textbf{Prize Pools}: Tournament prizes (premium feature)
+\end{itemize}
+
+\section{Social Features}
+
+\subsection{Community}
+
+\begin{itemize}
+    \item \textbf{Clubs}: Join or create chess clubs
+    \item \textbf{Forums}: Discussion forums
+    \item \textbf{User Posts}: Share games and content
+    \item \textbf{Comments}: Comment on games and posts
+    \item \textbf{Likes}: Like games and content
+\end{itemize}
+
+\subsection{Communication}
+
+\begin{itemize}
+    \item \textbf{Private Messages}: Direct messaging
+    \item \textbf{Friends List}: Add and manage friends
+    \item \textbf{Online Status}: See who's online
+    \item \textbf{Game Invitations}: Invite friends to play
+    \item \textbf{Notifications}: In-app notifications
+\end{itemize}
+
+\section{Analytics \& Statistics}
+
+\subsection{Player Statistics}
+
+\begin{itemize}
+    \item \textbf{Win/Loss/Draw}: Overall record
+    \item \textbf{Time Control Stats}: Performance by time control
+    \item \textbf{Opening Statistics}: Performance with different openings
+    \item \textbf{Accuracy Metrics}: Move accuracy analysis
+    \item \textbf{Time Usage}: Average time per move
+    \item \textbf{Rating Progression}: Historical rating charts
+\end{itemize}
+
+\subsection{Game Statistics}
+
+\begin{itemize}
+    \item \textbf{Game Archive}: All past games
+    \item \textbf{Search \& Filter}: Find specific games
+    \item \textbf{Export Games}: Download PGN files
+    \item \textbf{Game Tags}: Categorize games
+    \item \textbf{Favorite Games}: Save favorite games
+\end{itemize}
+
+\section{Premium Features}
+
+\subsection{Subscription Tiers}
+
+\begin{itemize}
+    \item \textbf{Free Tier}: Basic features
+    \item \textbf{Premium Tier}: Advanced features
+    \item \textbf{Diamond Tier}: All features + exclusive content
+\end{itemize}
+
+\subsection{Premium Benefits}
+
+\begin{itemize}
+    \item \textbf{Unlimited Analysis}: Unlimited engine analysis
+    \item \textbf{Advanced Statistics}: Detailed analytics
+    \item \textbf{Priority Support}: Faster customer support
+    \item \textbf{Ad-Free Experience}: No advertisements
+    \item \textbf{Exclusive Tournaments}: Premium-only tournaments
+    \item \textbf{Early Access}: New features first
+    \item \textbf{Custom Themes}: UI customization
+    \item \textbf{Increased Vote Weight}: In chaos mode
+\end{itemize}
+
+\section{Administrative Features}
+
+\subsection{Moderation}
+
+\begin{itemize}
+    \item \textbf{User Moderation}: Ban, warn, suspend users
+    \item \textbf{Content Moderation}: Moderate chat and posts
+    \item \textbf{Game Review}: Review reported games
+    \item \textbf{Appeal System}: User appeals process
+\end{itemize}
+
+\subsection{System Management}
+
+\begin{itemize}
+    \item \textbf{Server Status}: Monitor system health
+    \item \textbf{Analytics Dashboard}: Platform analytics
+    \item \textbf{User Management}: Admin user controls
+    \item \textbf{Content Management}: Manage academy content
+\end{itemize}

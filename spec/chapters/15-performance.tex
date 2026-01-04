@@ -1,0 +1,249 @@
+\chapter{Performance \& Scalability}
+
+\section{Overview}
+
+Performance optimization and scalability planning are crucial for providing a smooth user experience as the platform grows. This chapter outlines strategies for optimizing performance and ensuring scalability.
+
+\section{Frontend Performance}
+
+\subsection{Code Splitting}
+
+\begin{itemize}
+    \item \textbf{Route-based}: Automatic code splitting by Next.js
+    \item \textbf{Component-based}: Dynamic imports for large components
+    \item \textbf{Lazy Loading}: Load components on demand
+\end{itemize}
+
+\begin{lstlisting}[language=typescript]
+// Dynamic import example
+import dynamic from 'next/dynamic';
+
+const ChessBoard = dynamic(() => import('@/components/chess/ChessBoard'), {
+  loading: () => <div>Loading board...</div>,
+  ssr: false,
+});
+\end{lstlisting}
+
+\subsection{Image Optimization}
+
+\begin{itemize}
+    \item \textbf{Next.js Image}: Automatic image optimization
+    \item \textbf{WebP/AVIF}: Modern image formats
+    \item \textbf{Lazy Loading}: Load images on scroll
+    \item \textbf{Responsive Images}: Serve appropriate sizes
+\end{itemize}
+
+\subsection{Bundle Optimization}
+
+\begin{itemize}
+    \item \textbf{Tree Shaking}: Remove unused code
+    \item \textbf{Minification}: Compress JavaScript and CSS
+    \item \textbf{Compression}: Gzip/Brotli compression
+    \item \textbf{CDN}: Serve static assets from CDN
+\end{itemize}
+
+\subsection{Caching Strategies}
+
+\begin{itemize}
+    \item \textbf{Static Assets}: Long-term caching with versioning
+    \item \textbf{API Responses}: Cache frequently accessed data
+    \item \textbf{Service Worker}: Offline caching (PWA)
+    \item \textbf{Browser Cache}: Leverage browser caching
+\end{itemize}
+
+\section{Backend Performance}
+
+\subsection{Database Optimization}
+
+\begin{itemize}
+    \item \textbf{Indexing}: Proper indexes on frequently queried fields
+    \item \textbf{Query Optimization}: Efficient Prisma queries
+    \item \textbf{Connection Pooling}: Prisma connection pooling
+    \item \textbf{Read Replicas}: Separate read/write databases (future)
+\end{itemize}
+
+\subsection{API Optimization}
+
+\begin{itemize}
+    \item \textbf{Pagination}: Limit result sets
+    \item \textbf{Field Selection}: Return only needed fields
+    \item \textbf{Compression}: Gzip responses
+    \item \textbf{Caching}: Cache API responses
+\end{itemize}
+
+\subsection{Background Jobs}
+
+\begin{itemize}
+    \item \textbf{Queue System}: Process heavy tasks asynchronously
+    \item \textbf{Job Processing}: Background job processing
+    \item \textbf{Rate Limiting}: Prevent API abuse
+\end{itemize}
+
+\section{Database Performance}
+
+\subsection{Query Optimization}
+
+\begin{lstlisting}[language=typescript]
+// Efficient query with select
+const users = await prisma.user.findMany({
+  select: {
+    id: true,
+    username: true,
+    ratings: {
+      select: {
+        rating: true,
+        ratingType: true,
+      },
+    },
+  },
+  take: 20,
+  skip: 0,
+});
+
+// Use indexes
+const games = await prisma.game.findMany({
+  where: {
+    status: 'IN_PROGRESS',
+    createdAt: {
+      gte: new Date(Date.now() - 24 * 60 * 60 * 1000),
+    },
+  },
+  // Indexed fields: status, createdAt
+});
+\end{lstlisting}
+
+\subsection{Connection Pooling}
+
+\begin{lstlisting}[language=prisma, caption=Prisma connection pooling]
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  // Connection pooling handled by Prisma
+}
+\end{lstlisting}
+
+\subsection{Caching Layer}
+
+\begin{itemize}
+    \item \textbf{Redis}: In-memory caching (future)
+    \item \textbf{Cache Keys}: Structured cache key naming
+    \item \textbf{Cache Invalidation}: Smart cache invalidation
+    \item \textbf{TTL}: Appropriate time-to-live values
+\end{itemize}
+
+\section{WebSocket Performance}
+
+\subsection{Connection Management}
+
+\begin{itemize}
+    \item \textbf{Connection Limits}: Limit connections per user
+    \item \textbf{Room Management}: Efficient room organization
+    \item \textbf{Message Batching}: Batch multiple updates
+    \item \textbf{Compression}: Compress WebSocket messages
+\end{itemize}
+
+\subsection{Scaling WebSockets}
+
+\begin{itemize}
+    \item \textbf{Load Balancing}: Distribute connections
+    \item \textbf{Sticky Sessions}: Maintain connection affinity
+    \item \textbf{Message Queue}: Use message queue for scaling
+    \item \textbf{Redis Pub/Sub}: Distributed messaging (future)
+\end{itemize}
+
+\section{CDN \& Edge}
+
+\subsection{Static Asset Delivery}
+
+\begin{itemize}
+    \item \textbf{Vercel CDN}: Automatic CDN for static assets
+    \item \textbf{Edge Caching}: Cache at edge locations
+    \item \textbf{Asset Versioning}: Version assets for cache busting
+\end{itemize}
+
+\subsection{Edge Functions}
+
+\begin{lstlisting}[language=typescript]
+// Edge function for low latency
+export const runtime = 'edge';
+
+export async function GET(request: Request) {
+  // Fast response from edge location
+  const data = await fetchData();
+  return Response.json(data);
+}
+\end{lstlisting}
+
+\section{Monitoring \& Metrics}
+
+\subsection{Performance Metrics}
+
+\begin{itemize}
+    \item \textbf{Web Vitals}: LCP, FID, CLS
+    \item \textbf{API Response Times}: Track endpoint performance
+    \item \textbf{Database Query Times}: Monitor slow queries
+    \item \textbf{Error Rates}: Track error frequency
+\end{itemize}
+
+\subsection{Monitoring Tools}
+
+\begin{itemize}
+    \item \textbf{Vercel Analytics}: Built-in performance monitoring
+    \item \textbf{APM}: Application Performance Monitoring
+    \item \textbf{Logging}: Structured logging
+    \item \textbf{Alerts}: Performance degradation alerts
+\end{itemize}
+
+\section{Scalability Planning}
+
+\subsection{Horizontal Scaling}
+
+\begin{itemize}
+    \item \textbf{Stateless Design}: No server-side state
+    \item \textbf{Load Balancing}: Distribute traffic
+    \item \textbf{Database Scaling}: Read replicas, sharding
+    \item \textbf{Caching}: Reduce database load
+\end{itemize}
+
+\subsection{Vertical Scaling}
+
+\begin{itemize}
+    \item \textbf{Resource Allocation}: Increase server resources
+    \item \textbf{Database Resources}: Scale database instance
+    \item \textbf{Connection Limits}: Adjust connection pools
+\end{itemize}
+
+\section{Optimization Checklist}
+
+\subsection{Frontend}
+
+\begin{itemize}
+    \item [ ] Code splitting implemented
+    \item [ ] Images optimized
+    \item [ ] Bundle size minimized
+    \item [ ] Lazy loading for heavy components
+    \item [ ] Service worker for caching
+    \item [ ] CDN for static assets
+\end{itemize}
+
+\subsection{Backend}
+
+\begin{itemize}
+    \item [ ] Database indexes optimized
+    \item [ ] Query performance optimized
+    \item [ ] API response caching
+    \item [ ] Connection pooling configured
+    \item [ ] Rate limiting implemented
+    \item [ ] Background jobs for heavy tasks
+\end{itemize}
+
+\subsection{Infrastructure}
+
+\begin{itemize}
+    \item [ ] CDN configured
+    \item [ ] Edge functions utilized
+    \item [ ] Monitoring in place
+    \item [ ] Alerts configured
+    \item [ ] Auto-scaling enabled
+    \item [ ] Backup strategy implemented
+\end{itemize}

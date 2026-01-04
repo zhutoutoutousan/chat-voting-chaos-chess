@@ -1,0 +1,578 @@
+\chapter{Frontend Architecture}
+
+\section{Overview}
+
+The frontend is built with Next.js 14+ using the App Router architecture, providing server-side rendering, static generation, and optimal performance. The application follows modern React patterns with TypeScript for type safety.
+
+\section{Next.js App Router Structure}
+
+\subsection{Directory Organization}
+
+\begin{lstlisting}[language=bash, caption=Frontend Directory Structure]
+app/
+├── (auth)/                    # Route group for authentication
+│   ├── login/
+│   │   └── page.tsx
+│   └── register/
+│       └── page.tsx
+├── (dashboard)/                # Route group for authenticated pages
+│   ├── games/
+│   │   ├── [id]/
+│   │   │   └── page.tsx
+│   │   └── page.tsx
+│   ├── academy/
+│   │   ├── courses/
+│   │   │   └── [id]/
+│   │   │       └── page.tsx
+│   │   └── page.tsx
+│   ├── profile/
+│   │   └── page.tsx
+│   └── settings/
+│       └── page.tsx
+├── api/                        # API routes
+│   ├── auth/
+│   │   └── [...nextauth]/
+│   │       └── route.ts
+│   └── webhooks/
+│       └── stripe/
+│           └── route.ts
+├── layout.tsx                  # Root layout
+└── page.tsx                    # Home page
+\end{lstlisting}
+
+\section{Component Architecture}
+
+\subsection{Component Organization}
+
+\begin{lstlisting}[language=bash, caption=Components Directory]
+components/
+├── ui/                         # Base UI components (shadcn/ui)
+│   ├── button.tsx
+│   ├── input.tsx
+│   ├── card.tsx
+│   └── ...
+├── chess/                      # Chess-specific components
+│   ├── ChessBoard.tsx
+│   ├── Piece.tsx
+│   ├── MoveHistory.tsx
+│   └── GameClock.tsx
+├── game/                       # Game components
+│   ├── GameLobby.tsx
+│   ├── GameView.tsx
+│   ├── GameControls.tsx
+│   └── Matchmaking.tsx
+├── chat/                       # Chat components
+│   ├── ChatWindow.tsx
+│   ├── ChatMessage.tsx
+│   └── ChatInput.tsx
+├── voting/                     # Voting components
+│   ├── VotingPanel.tsx
+│   ├── MoveOption.tsx
+│   └── VoteResults.tsx
+├── academy/                    # Academy components
+│   ├── CourseCard.tsx
+│   ├── LessonView.tsx
+│   └── ProgressBar.tsx
+└── layout/                     # Layout components
+    ├── Header.tsx
+    ├── Sidebar.tsx
+    └── Footer.tsx
+\end{lstlisting}
+
+\subsection{Component Patterns}
+
+\subsubsection{Server Components}
+
+Used for data fetching and static content:
+
+\begin{lstlisting}[language=typescript]
+// app/games/page.tsx
+export default async function GamesPage() {
+  const games = await fetchGames();
+  
+  return (
+    <div>
+      <GamesList games={games} />
+    </div>
+  );
+}
+\end{lstlisting}
+
+\subsubsection{Client Components}
+
+Used for interactivity and state management:
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export function GameView({ gameId }: { gameId: string }) {
+  const [game, setGame] = useState(null);
+  
+  useEffect(() => {
+    // WebSocket connection
+    const ws = new WebSocket(`ws://.../games/${gameId}`);
+    // ...
+  }, [gameId]);
+  
+  return <div>...</div>;
+}
+\end{lstlisting}
+
+\section{State Management}
+
+\subsection{React Context}
+
+Global state management using React Context:
+
+\begin{lstlisting}[language=typescript]
+// contexts/AuthContext.tsx
+'use client';
+
+import { createContext, useContext } from 'react';
+import { useSession } from 'next-auth/react';
+
+interface AuthContextType {
+  user: User | null;
+  isLoading: boolean;
+}
+
+const AuthContext = createContext<AuthContextType>({
+  user: null,
+  isLoading: true,
+});
+
+export function AuthProvider({ children }: { children: React.ReactNode }) {
+  const { data: session, status } = useSession();
+  
+  return (
+    <AuthContext.Provider value={{
+      user: session?.user || null,
+      isLoading: status === 'loading',
+    }}>
+      {children}
+    </AuthContext.Provider>
+  );
+}
+
+export const useAuth = () => useContext(AuthContext);
+\end{lstlisting}
+
+\subsection{Local State}
+
+Component-level state using React hooks:
+
+\begin{itemize}
+    \item \texttt{useState}: Component state
+    \item \texttt{useReducer}: Complex state logic
+    \item \texttt{useEffect}: Side effects
+    \item \texttt{useMemo}: Memoized values
+    \item \texttt{useCallback}: Memoized functions
+\end{itemize}
+
+\section{Data Fetching}
+
+\subsection{Server-Side Fetching}
+
+Using Next.js server components and async/await:
+
+\begin{lstlisting}[language=typescript]
+// app/games/[id]/page.tsx
+export default async function GamePage({ 
+  params 
+}: { 
+  params: { id: string } 
+}) {
+  const game = await fetch(`/api/games/${params.id}`)
+    .then(res => res.json());
+  
+  return <GameView game={game} />;
+}
+\end{lstlisting}
+
+\subsection{Client-Side Fetching}
+
+Using React hooks and fetch API:
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useState, useEffect } from 'react';
+
+export function UserStats({ userId }: { userId: string }) {
+  const [stats, setStats] = useState(null);
+  
+  useEffect(() => {
+    fetch(`/api/users/${userId}/stats`)
+      .then(res => res.json())
+      .then(setStats);
+  }, [userId]);
+  
+  if (!stats) return <div>Loading...</div>;
+  
+  return <div>...</div>;
+}
+\end{lstlisting}
+
+\subsection{React Query (Optional)}
+
+For advanced data fetching and caching:
+
+\begin{itemize}
+    \item Automatic caching
+    \item Background refetching
+    \item Optimistic updates
+    \item Request deduplication
+\end{itemize}
+
+\section{WebSocket Integration}
+
+\subsection{WebSocket Hook}
+
+Custom hook for WebSocket connections:
+
+\begin{lstlisting}[language=typescript]
+// hooks/useWebSocket.ts
+'use client';
+
+import { useEffect, useRef, useState } from 'react';
+
+export function useWebSocket(url: string) {
+  const [socket, setSocket] = useState<WebSocket | null>(null);
+  const [isConnected, setIsConnected] = useState(false);
+  const [lastMessage, setLastMessage] = useState<any>(null);
+  
+  useEffect(() => {
+    const ws = new WebSocket(url);
+    
+    ws.onopen = () => setIsConnected(true);
+    ws.onclose = () => setIsConnected(false);
+    ws.onmessage = (event) => {
+      setLastMessage(JSON.parse(event.data));
+    };
+    
+    setSocket(ws);
+    
+    return () => {
+      ws.close();
+    };
+  }, [url]);
+  
+  const sendMessage = (message: any) => {
+    if (socket && isConnected) {
+      socket.send(JSON.stringify(message));
+    }
+  };
+  
+  return { socket, isConnected, lastMessage, sendMessage };
+}
+\end{lstlisting}
+
+\subsection{Game WebSocket Usage}
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useWebSocket } from '@/hooks/useWebSocket';
+
+export function GameView({ gameId }: { gameId: string }) {
+  const { lastMessage, sendMessage, isConnected } = useWebSocket(
+    `wss://api.example.com/games/${gameId}`
+  );
+  
+  useEffect(() => {
+    if (lastMessage) {
+      switch (lastMessage.type) {
+        case 'MOVE':
+          handleMove(lastMessage.data);
+          break;
+        case 'CHAT':
+          handleChatMessage(lastMessage.data);
+          break;
+        case 'VOTE_UPDATE':
+          handleVoteUpdate(lastMessage.data);
+          break;
+      }
+    }
+  }, [lastMessage]);
+  
+  const makeMove = (move: string) => {
+    sendMessage({ type: 'MOVE', move });
+  };
+  
+  return <div>...</div>;
+}
+\end{lstlisting}
+
+\section{Routing}
+
+\subsection{File-Based Routing}
+
+Next.js App Router uses file-based routing:
+
+\begin{itemize}
+    \item \texttt{app/page.tsx}: Home page (\texttt{/})
+    \item \texttt{app/games/page.tsx}: Games list (\texttt{/games})
+    \item \texttt{app/games/[id]/page.tsx}: Game detail (\texttt{/games/:id})
+    \item \texttt{app/(auth)/login/page.tsx}: Login (\texttt{/login})
+\end{itemize}
+
+\subsection{Route Groups}
+
+Route groups \texttt{(folder)}} organize routes without affecting URL structure:
+
+\begin{itemize}
+    \item \texttt{(auth)}: Authentication pages
+    \item \texttt{(dashboard)}: Protected dashboard pages
+\end{itemize}
+
+\subsection{Layouts}
+
+Nested layouts for shared UI:
+
+\begin{lstlisting}[language=typescript]
+// app/layout.tsx - Root layout
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <html>
+      <body>
+        <Header />
+        {children}
+        <Footer />
+      </body>
+    </html>
+  );
+}
+
+// app/(dashboard)/layout.tsx - Dashboard layout
+export default function DashboardLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
+  return (
+    <div>
+      <Sidebar />
+      <main>{children}</main>
+    </div>
+  );
+}
+\end{lstlisting}
+
+\section{Styling}
+
+\subsection{Tailwind CSS}
+
+Utility-first CSS framework:
+
+\begin{lstlisting}[language=typescript]
+export function Button({ children }: { children: React.ReactNode }) {
+  return (
+    <button className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600">
+      {children}
+    </button>
+  );
+}
+\end{lstlisting}
+
+\subsection{Component Library}
+
+Using shadcn/ui for pre-built components:
+
+\begin{itemize}
+    \item Accessible components
+    \item Customizable styling
+    \item TypeScript support
+    \item Tailwind CSS integration
+\end{itemize}
+
+\section{Form Handling}
+
+\subsection{React Hook Form}
+
+Form management library:
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { useForm } from 'react-hook-form';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
+
+const schema = z.object({
+  email: z.string().email(),
+  password: z.string().min(8),
+});
+
+export function LoginForm() {
+  const { register, handleSubmit, formState: { errors } } = useForm({
+    resolver: zodResolver(schema),
+  });
+  
+  const onSubmit = async (data: z.infer<typeof schema>) => {
+    // Handle login
+  };
+  
+  return (
+    <form onSubmit={handleSubmit(onSubmit)}>
+      <input {...register('email')} />
+      {errors.email && <span>{errors.email.message}</span>}
+      {/* ... */}
+    </form>
+  );
+}
+\end{lstlisting}
+
+\section{API Integration}
+
+\subsection{API Client}
+
+Centralized API client:
+
+\begin{lstlisting}[language=typescript]
+// lib/api.ts
+const API_BASE_URL = process.env.NEXT_PUBLIC_API_URL || '/api';
+
+export async function apiRequest<T>(
+  endpoint: string,
+  options?: RequestInit
+): Promise<T> {
+  const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    ...options,
+    headers: {
+      'Content-Type': 'application/json',
+      ...options?.headers,
+    },
+  });
+  
+  if (!response.ok) {
+    throw new Error(`API Error: ${response.statusText}`);
+  }
+  
+  return response.json();
+}
+
+// Usage
+export const gamesApi = {
+  getGames: () => apiRequest<Game[]>('/v1/games'),
+  getGame: (id: string) => apiRequest<Game>(`/v1/games/${id}`),
+  createGame: (data: CreateGameDto) => 
+    apiRequest<Game>('/v1/games', { method: 'POST', body: JSON.stringify(data) }),
+};
+\end{lstlisting}
+
+\section{Error Handling}
+
+\subsection{Error Boundaries}
+
+React error boundaries for error handling:
+
+\begin{lstlisting}[language=typescript]
+'use client';
+
+import { Component, ReactNode } from 'react';
+
+interface Props {
+  children: ReactNode;
+}
+
+interface State {
+  hasError: boolean;
+}
+
+export class ErrorBoundary extends Component<Props, State> {
+  constructor(props: Props) {
+    super(props);
+    this.state = { hasError: false };
+  }
+  
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+  
+  render() {
+    if (this.state.hasError) {
+      return <div>Something went wrong.</div>;
+    }
+    
+    return this.props.children;
+  }
+}
+\end{lstlisting}
+
+\section{Performance Optimization}
+
+\subsection{Code Splitting}
+
+Automatic code splitting with Next.js:
+
+\begin{itemize}
+    \item Route-based splitting
+    \item Dynamic imports
+    \item Component lazy loading
+\end{itemize}
+
+\subsection{Image Optimization}
+
+Next.js Image component:
+
+\begin{lstlisting}[language=typescript]
+import Image from 'next/image';
+
+<Image
+  src="/avatar.jpg"
+  alt="User avatar"
+  width={100}
+  height={100}
+  priority
+/>
+\end{lstlisting}
+
+\subsection{Static Generation}
+
+Pre-rendering static pages:
+
+\begin{lstlisting}[language=typescript]
+export async function generateStaticParams() {
+  const courses = await fetchCourses();
+  return courses.map((course) => ({
+    id: course.id,
+  }));
+}
+\end{lstlisting}
+
+\section{TypeScript Integration}
+
+\subsection{Type Safety}
+
+Full TypeScript support:
+
+\begin{itemize}
+    \item Shared types from \texttt{@chaos-chess/shared}
+    \item API response types
+    \item Component prop types
+    \item Hook return types
+\end{itemize}
+
+\subsection{Type Definitions}
+
+\begin{lstlisting}[language=typescript]
+// types/game.types.ts
+import { Game, GameStatus, GameResult } from '@chaos-chess/shared';
+
+export interface GameViewProps {
+  game: Game;
+  onMove?: (move: string) => void;
+}
+
+export interface GameState {
+  game: Game | null;
+  isLoading: boolean;
+  error: string | null;
+}
+\end{lstlisting}

@@ -1,0 +1,141 @@
+\appendix
+\chapter{API Endpoints Reference}
+
+\section{Complete API Reference}
+
+This appendix provides a comprehensive reference of all API endpoints.
+
+\section{Authentication Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+POST & /api/v1/auth/register & No & Register new user \\
+POST & /api/v1/auth/login & No & Login user \\
+POST & /api/v1/auth/oauth/:provider & No & OAuth login \\
+POST & /api/v1/auth/refresh & No & Refresh access token \\
+POST & /api/v1/auth/logout & Yes & Logout user \\
+POST & /api/v1/auth/verify-email & No & Verify email address \\
+POST & /api/v1/auth/reset-password & No & Request password reset \\
+POST & /api/v1/auth/reset-password/confirm & No & Confirm password reset \\
+\hline
+\end{longtable}
+
+\section{User Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+GET & /api/v1/users/me & Yes & Get current user \\
+PUT & /api/v1/users/me & Yes & Update current user \\
+GET & /api/v1/users/:id & No & Get user profile \\
+GET & /api/v1/users/:id/stats & No & Get user statistics \\
+GET & /api/v1/users/:id/games & No & Get user games \\
+GET & /api/v1/users/:id/ratings & No & Get user ratings \\
+\hline
+\end{longtable}
+
+\section{Game Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+POST & /api/v1/games & Yes & Create new game \\
+GET & /api/v1/games & No & List games \\
+GET & /api/v1/games/:id & No & Get game details \\
+POST & /api/v1/games/:id/moves & Yes & Make a move \\
+POST & /api/v1/games/:id/resign & Yes & Resign game \\
+POST & /api/v1/games/:id/draw-offer & Yes & Offer draw \\
+POST & /api/v1/games/:id/draw-accept & Yes & Accept draw \\
+POST & /api/v1/games/:id/draw-decline & Yes & Decline draw \\
+GET & /api/v1/games/:id/analysis & No & Get game analysis \\
+GET & /api/v1/games/:id/pgn & No & Get game PGN \\
+\hline
+\end{longtable}
+
+\section{Rating Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+GET & /api/v1/ratings/me & Yes & Get user ratings \\
+GET & /api/v1/ratings/leaderboard & No & Get leaderboard \\
+GET & /api/v1/ratings/:userId/history & No & Get rating history \\
+\hline
+\end{longtable}
+
+\section{Academy Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+GET & /api/v1/academy/courses & No & List courses \\
+GET & /api/v1/academy/courses/:id & No & Get course \\
+GET & /api/v1/academy/courses/:id/lessons & No & Get course lessons \\
+GET & /api/v1/academy/lessons/:id & No & Get lesson \\
+POST & /api/v1/academy/lessons/:id/complete & Yes & Complete lesson \\
+GET & /api/v1/academy/progress & Yes & Get user progress \\
+GET & /api/v1/academy/puzzles/daily & No & Get daily puzzle \\
+GET & /api/v1/academy/puzzles/:id & No & Get puzzle \\
+POST & /api/v1/academy/puzzles/:id/solve & Yes & Solve puzzle \\
+\hline
+\end{longtable}
+
+\section{Chat Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+GET & /api/v1/chat/games/:gameId/messages & No & Get chat messages \\
+POST & /api/v1/chat/games/:gameId/messages & Yes & Send message \\
+\hline
+\end{longtable}
+
+\section{Voting Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+GET & /api/v1/voting/games/:gameId/current-round & No & Get voting status \\
+POST & /api/v1/voting/games/:gameId/vote & Yes & Submit vote \\
+\hline
+\end{longtable}
+
+\section{Payment Endpoints}
+
+\begin{longtable}{|l|l|l|p{6cm}|}
+\hline
+\textbf{Method} & \textbf{Endpoint} & \textbf{Auth} & \textbf{Description} \\
+\hline
+POST & /api/v1/payments/create-checkout & Yes & Create checkout session \\
+GET & /api/v1/payments/subscription & Yes & Get subscription \\
+POST & /api/v1/payments/cancel-subscription & Yes & Cancel subscription \\
+POST & /api/v1/payments/create-portal-session & Yes & Create portal session \\
+POST & /api/v1/payments/webhook & No & Stripe webhook \\
+\hline
+\end{longtable}
+
+\section{Error Codes}
+
+\begin{longtable}{|l|l|}
+\hline
+\textbf{Code} & \textbf{Description} \\
+\hline
+400 & Bad Request \\
+401 & Unauthorized \\
+403 & Forbidden \\
+404 & Not Found \\
+409 & Conflict \\
+422 & Unprocessable Entity \\
+429 & Too Many Requests \\
+500 & Internal Server Error \\
+503 & Service Unavailable \\
+\hline
+\end{longtable}
