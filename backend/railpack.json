@@ -8,6 +8,9 @@
     "install": {
       "commands": [
         { "cmd": "npm install -g pnpm", "customName": "Install pnpm" },
+        { "cmd": "pwd", "customName": "Debug: Show current directory" },
+        { "cmd": "ls -la", "customName": "Debug: List files in current directory" },
+        { "cmd": "sh -c 'if [ -d backend ]; then echo \"=== backend directory exists ===\" && ls -la backend/; else echo \"=== backend directory does not exist ===\"; fi'", "customName": "Debug: Check backend directory" },
         { "cmd": "sh -c 'if [ -f package.json ]; then pnpm install; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm install; else echo \"ERROR: Cannot find package.json\" && exit 1; fi'", "customName": "Install dependencies" },
         { "cmd": "sh -c 'if [ -f package.json ]; then pnpm prisma:generate; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm prisma:generate; else echo \"ERROR: Cannot find package.json for prisma generate\" && exit 1; fi'", "customName": "Generate Prisma client" }
       ]
