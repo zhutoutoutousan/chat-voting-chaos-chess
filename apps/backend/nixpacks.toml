@@ -1,0 +1,20 @@
+[phases.setup]
+nixPkgs = ["nodejs_20"]
+
+[phases.install]
+cmds = [
+  "cd ../..",
+  "corepack enable",
+  "corepack prepare pnpm@8.15.0 --activate",
+  "pnpm install",
+  "pnpm db:generate"
+]
+
+[phases.build]
+cmds = [
+  "cd apps/backend",
+  "pnpm build"
+]
+
+[start]
+cmd = "node dist/main.js"
