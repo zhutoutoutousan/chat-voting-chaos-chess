@@ -7,7 +7,7 @@
   "steps": {
     "install": {
       "commands": [
-        { "cmd": "cd ../.. && corepack enable && corepack prepare pnpm@8.15.0 --activate", "customName": "Setup pnpm 8.15.0" },
+        { "cmd": "cd ../.. && corepack enable && corepack prepare pnpm@8.15.1 --activate", "customName": "Setup pnpm 8.15.1" },
         { "cmd": "cd ../.. && pnpm install", "customName": "Install dependencies" },
         { "cmd": "cd ../.. && pnpm db:generate", "customName": "Generate Prisma client" }
       ]
