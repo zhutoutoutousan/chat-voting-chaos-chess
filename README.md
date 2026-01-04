@@ -50,15 +50,15 @@ chat-voting-chaos-chess/
 2. **Install dependencies:**
    ```bash
    # Install frontend dependencies
-   cd apps/frontend && pnpm install && cd ../..
+   cd frontend && npm install && cd ..
 
    # Install backend dependencies
-   cd apps/backend && pnpm install && cd ../..
+   cd backend && pnpm install && cd ..
    ```
 
 3. **Set up environment variables:**
 
-   Create `apps/backend/.env`:
+   Create `backend/.env`:
    ```env
    DATABASE_URL="your-supabase-connection-string"
    JWT_SECRET="your-secret-key-change-this"
@@ -66,7 +66,7 @@ chat-voting-chaos-chess/
    PORT=3001
    ```
 
-   Create `apps/frontend/.env.local`:
+   Create `frontend/.env.local`:
    ```env
    NEXT_PUBLIC_API_URL="http://localhost:3001/api/v1"
    NEXT_PUBLIC_WS_URL="http://localhost:3001"
@@ -76,7 +76,7 @@ chat-voting-chaos-chess/
 
 4. **Set up database:**
    ```bash
-   cd apps/backend
+   cd backend
 
    # Generate Prisma client
    pnpm prisma:generate
@@ -91,21 +91,21 @@ chat-voting-chaos-chess/
 5. **Start development servers:**
    ```bash
    # Start frontend (in one terminal)
-   cd apps/frontend && pnpm dev
+   cd frontend && npm run dev
 
    # Start backend (in another terminal)
-   cd apps/backend && pnpm dev
+   cd backend && pnpm dev
    ```
 
 ## Available Scripts
 
-### Frontend (apps/frontend)
+### Frontend (frontend)
 - `pnpm dev` - Start development server
 - `pnpm build` - Build for production
 - `pnpm start` - Start production server
 - `pnpm lint` - Lint code
 
-### Backend (apps/backend)
+### Backend (backend)
 - `pnpm dev` - Start development server (auto-generates Prisma client)
 - `pnpm build` - Build for production (generates Prisma client first)
 - `pnpm start` - Start production server
@@ -116,10 +116,10 @@ chat-voting-chaos-chess/
 
 ## Database Management
 
-All database operations are done from `apps/backend`:
+All database operations are done from `backend`:
 
 ```bash
-cd apps/backend
+cd backend
 
 # Generate Prisma client
 pnpm prisma:generate
@@ -141,9 +141,10 @@ pnpm prisma:studio
 1. **Go to Vercel Dashboard** → Add New Project
 2. **Import your GitHub repository**
 3. **Configure in Dashboard:**
-   - **Root Directory**: `apps/frontend` (set in Vercel Dashboard → Settings → General)
+   - **Root Directory**: `frontend` (set in Vercel Dashboard → Settings → General)
    - Framework will auto-detect Next.js
-   - Build Command: `pnpm build` (configured in `apps/frontend/vercel.json`)
+   - Build Command: `npm run build` (configured in `frontend/vercel.json`)
+   - Uses npm instead of pnpm to avoid `ERR_INVALID_THIS` errors
 4. **Set Environment Variables:**
    ```
    NEXT_PUBLIC_API_URL=https://your-backend.railway.app/api/v1
@@ -155,7 +156,7 @@ pnpm prisma:studio
    ```
 5. **Deploy!**
 
-**Note**: Vercel will automatically detect Next.js and run `pnpm build` in the `apps/frontend` directory.
+**Note**: Vercel will automatically detect Next.js and run `npm run build` in the `frontend` directory.
 
 ### Backend Deployment (Railway)
 
@@ -165,7 +166,9 @@ pnpm prisma:studio
 2. **Create New Project** → Deploy from GitHub repo
 3. **Select your repository**
 4. **Configure Service:**
-   - **Root Directory**: `apps/backend` (IMPORTANT: Set this in Railway Dashboard → Settings → Source)
+   - **Root Directory**: `backend` (CRITICAL: Set this in Railway Dashboard → Settings → Source → Root Directory)
+     - This must be set to `backend` (not empty, not `apps/backend`)
+     - Railway will then find `backend/railpack.json` and use it automatically
    - Build and Start commands are handled by `railpack.json` automatically
    - Railway will use Railpack to build (installs pnpm, generates Prisma client, builds backend)
 5. **Set Environment Variables:**
@@ -178,8 +181,8 @@ pnpm prisma:studio
 6. **Deploy!**
 
 **Railway Configuration**: 
-- See `apps/backend/railway.json` for Railway-specific settings
-- See `apps/backend/railpack.json` for Railpack build configuration (Railway uses Railpack, not Nixpacks)
+- See `backend/railway.json` for Railway-specific settings
+- See `backend/railpack.json` for Railpack build configuration (Railway uses Railpack, not Nixpacks)
 
 ### Database Connection (Supabase)
 
@@ -193,12 +196,12 @@ pnpm prisma:studio
 ### Project Structure
 
 This project has two independent applications in the same repository:
-- **Frontend** (`apps/frontend`): Next.js application with its own dependencies
-  - Shared code in `apps/frontend/lib/` (types, constants, utils)
+- **Frontend** (`frontend`): Next.js application with its own dependencies
+  - Shared code in `frontend/lib/` (types, constants, utils)
   - No build step needed for shared code (TypeScript is transpiled by Next.js)
-- **Backend** (`apps/backend`): Nest.js application with its own dependencies
-  - Prisma schema in `apps/backend/prisma/`
-  - Shared code in `apps/backend/src/shared/` (types, constants, utils)
+- **Backend** (`backend`): Nest.js application with its own dependencies
+  - Prisma schema in `backend/prisma/`
+  - Shared code in `backend/src/shared/` (types, constants, utils)
   - Prisma client is generated during build (`pnpm build` runs `prisma generate` first)
 - **Single repository**: Keeps everything together for easier AI IDE assistance
 - **No monorepo tools**: Each app is completely independent
@@ -311,32 +314,36 @@ According to [Vercel's WebSocket documentation](https://vercel.com/kb/guide/do-v
 - Ensure backend is running
 
 ### Build Issues
-- **Frontend**: Clear `.next` folder and reinstall: `cd apps/frontend && rm -rf .next && pnpm install`
-- **Backend**: Generate Prisma client first: `cd apps/backend && pnpm prisma:generate`
+- **Frontend**: Clear `.next` folder and reinstall: `cd frontend && rm -rf .next && npm install`
+- **Backend**: Generate Prisma client first: `cd backend && pnpm prisma:generate`
 - Clear `dist` folders and reinstall dependencies in each app directory
 
 ### Vercel Build Fails
 - **"ERR_INVALID_THIS" or "ERR_PNPM_META_FETCH_FAIL" errors**: 
   - **Cause**: Known bug in older pnpm versions with Node.js 20+ ([pnpm/pnpm#6424](https://github.com/pnpm/pnpm/issues/6424), [pnpm/pnpm#6499](https://github.com/pnpm/pnpm/issues/6499))
   - **Solution**: 
-    - `vercel.json` uses `pnpm install` - Vercel auto-detects pnpm from `pnpm-lock.yaml`
-    - Vercel should use a compatible pnpm version automatically
-    - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to `apps/frontend`
-    - Node.js is pinned to 22.x in `apps/frontend/package.json` engines field
-    - If issues persist, Vercel may need to update their default pnpm version
-- Check root directory is set to `apps/frontend` in Dashboard
-- Verify frontend builds: `cd apps/frontend && pnpm build`
+    - `frontend/vercel.json` now uses `npm install` and `npm run build` instead of pnpm
+    - This avoids the pnpm compatibility issues entirely
+    - **IMPORTANT**: Ensure Vercel Dashboard → Settings → General → Root Directory is set to `frontend`
+- Check root directory is set to `frontend` in Dashboard
+- Verify frontend builds: `cd frontend && npm run build`
 - Check build logs for specific errors
 
 ### Railway Deployment Issues
+- **"Railpack could not determine how to build the app" error**: 
+  - **Cause**: Root Directory is set to empty string or wrong path
+  - **Solution**: 
+    - Go to Railway Dashboard → Settings → Source
+    - Set **Root Directory** to exactly `backend` (not empty, not `apps/backend`, just `backend`)
+    - Railway will then find `backend/railpack.json` and use it automatically
 - **"No start command was found" error**: 
-  - **Solution**: `apps/backend/railpack.json` has `startCommand: "node dist/main.js"` in deploy section
-  - Ensure Root Directory is set to `apps/backend` in Railway Dashboard → Settings → Source
+  - **Solution**: `backend/railpack.json` has `startCommand: "node dist/main.js"` in deploy section
+  - Ensure Root Directory is set to `backend` in Railway Dashboard → Settings → Source
   - Railway should automatically detect the startCommand from railpack.json
 - **"nest: not found" error**: Railway is using npm instead of pnpm for build
   - **Cause**: Railway's Railpack might auto-detect npm
   - **Solution**: 
-    - `apps/backend/railpack.json` installs pnpm globally, then uses it for the build
+    - `backend/railpack.json` installs pnpm globally, then uses it for the build
     - Railway uses Railpack (not Nixpacks) - see [Railpack docs](https://docs.railway.com/reference/railpack)
     - The railpack.json should handle everything automatically
 - Verify `DATABASE_URL` is set correctly
