@@ -12,7 +12,10 @@
         { "cmd": "ls -la", "customName": "Debug: List files in current directory" },
         { "cmd": "sh -c 'echo \"=== Checking parent directory ===\" && ls -la .. 2>/dev/null || echo \"Cannot access parent\"'", "customName": "Debug: Check parent directory" },
         { "cmd": "sh -c 'echo \"=== Checking root directory ===\" && ls -la / 2>/dev/null | head -20 || echo \"Cannot access root\"'", "customName": "Debug: Check root directory" },
-        { "cmd": "sh -c 'echo \"=== Searching for package.json ===\" && find / -name package.json -type f 2>/dev/null | head -10 || echo \"No package.json found\"'", "customName": "Debug: Search for package.json" },
+        { "cmd": "sh -c 'echo \"=== Searching for railpack.json ===\" && find / -name railpack.json -type f 2>/dev/null | head -5 || echo \"No railpack.json found\"'", "customName": "Debug: Search for railpack.json" },
+        { "cmd": "sh -c 'echo \"=== Searching for railway.json ===\" && find / -name railway.json -type f 2>/dev/null | head -5 || echo \"No railway.json found\"'", "customName": "Debug: Search for railway.json" },
+        { "cmd": "sh -c 'echo \"=== Searching for schema.prisma ===\" && find / -path \"*/prisma/schema.prisma\" -type f 2>/dev/null | head -5 || echo \"No schema.prisma found\"'", "customName": "Debug: Search for schema.prisma" },
+        { "cmd": "sh -c 'echo \"=== Searching for nest-cli.json ===\" && find / -name nest-cli.json -type f 2>/dev/null | head -5 || echo \"No nest-cli.json found\"'", "customName": "Debug: Search for nest-cli.json" },
         { "cmd": "sh -c 'if [ -d backend ]; then echo \"=== backend directory exists ===\" && ls -la backend/; else echo \"=== backend directory does not exist ===\"; fi'", "customName": "Debug: Check backend directory" },
         { "cmd": "sh -c 'if [ -f package.json ]; then pnpm install; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm install; else echo \"ERROR: Cannot find package.json\" && exit 1; fi'", "customName": "Install dependencies" },
         { "cmd": "sh -c 'if [ -f package.json ]; then pnpm prisma:generate; elif [ -d backend ] && [ -f backend/package.json ]; then cd backend && pnpm prisma:generate; else echo \"ERROR: Cannot find package.json for prisma generate\" && exit 1; fi'", "customName": "Generate Prisma client" }
