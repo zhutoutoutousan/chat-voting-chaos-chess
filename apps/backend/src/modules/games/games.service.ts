@@ -3,7 +3,7 @@ import { PrismaService } from '../../database/prisma.service';
 import { ChessService } from '../chess/chess.service';
 import { RatingsService } from '../ratings/ratings.service';
 import { GamesGateway } from './games.gateway';
-import { GameStatus, GameResult } from '@chaos-chess/shared';
+import { GameStatus, GameResult } from '../../shared/types';
 
 @Injectable()
 export class GamesService {

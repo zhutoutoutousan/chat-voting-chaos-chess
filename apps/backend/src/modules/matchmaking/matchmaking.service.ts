@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { RatingsService } from '../ratings/ratings.service';
 import { GamesService } from '../games/games.service';
-import { RatingType } from '@chaos-chess/shared';
+import { RatingType } from '../../shared/types';
 
 interface MatchmakingRequest {
   userId: string;

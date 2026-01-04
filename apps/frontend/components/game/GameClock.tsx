@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { formatTime } from '@chaos-chess/shared';
+import { formatTime } from '@/lib/utils';
 
 interface GameClockProps {
   whiteTime: number | null; // milliseconds

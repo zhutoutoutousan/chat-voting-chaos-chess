@@ -3,7 +3,7 @@
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { gamesApi } from '@/lib/api';
-import { DEFAULT_TIME_CONTROLS } from '@chaos-chess/shared';
+import { DEFAULT_TIME_CONTROLS } from '@/lib/constants';
 
 export default function NewGamePage() {
   const router = useRouter();

@@ -1,0 +1,6 @@
+export const RATING_INITIAL = 1200;
+export const RATING_K_FACTOR_NEW = 40;
+export const RATING_K_FACTOR_INTERMEDIATE = 20;
+export const RATING_K_FACTOR_ESTABLISHED = 10;
+export const RATING_GAMES_NEW = 30;
+export const RATING_GAMES_INTERMEDIATE = 100;

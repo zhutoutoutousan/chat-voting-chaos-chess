@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '@nestjs/passport';
 import { MatchmakingService } from './matchmaking.service';
-import { RatingType } from '@chaos-chess/shared';
+import { RatingType } from '../../shared/types';
 
 @Controller('matchmaking')
 export class MatchmakingController {

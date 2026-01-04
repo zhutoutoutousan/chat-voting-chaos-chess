@@ -1,4 +1,0 @@
-{
-  "buildCommand": "pnpm db:generate && pnpm --filter @chaos-chess/shared build && cd apps/frontend && pnpm build",
-  "installCommand": "pnpm install"
-}

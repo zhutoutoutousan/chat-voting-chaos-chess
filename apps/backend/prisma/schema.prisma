@@ -675,7 +675,7 @@ model MarketplaceItem {
   // Availability
   isAvailable     Boolean  @default(true)
   isLimited       Boolean  @default(false)
-  stockCount      Int?
+  stockCount       Int?
   expiresAt       DateTime?
   
   // Creator
